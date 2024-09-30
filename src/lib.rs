@@ -15,7 +15,6 @@ use std::time::Instant;
 use app::App;
 use bevy_ecs::world::Mut;
 use bevy_ecs::world::World;
-use render::model::*;
 use resources::asset_server::AssetServer;
 use resources::egui_renderer::EguiRenderer;
 use resources::game_state::GameState;
@@ -113,7 +112,6 @@ impl ApplicationHandler for Engine {
     }
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        println!("{}", env!("OUT_DIR"));
         let window = event_loop.create_window(WindowAttributes::default()).unwrap();
         let window = Arc::new(window);
         //window.set_cursor_grab(CursorGrabMode::Locked)

@@ -2,7 +2,7 @@ use std::{any::{Any, TypeId}, collections::HashMap, hash::{DefaultHasher, Hash, 
 
 use bevy_ecs::system::Resource;
 
-use crate::{asset::Asset, util::get_extension, Model, Texture};
+use crate::{asset::Asset, util::get_extension, Texture};
 
 #[derive(Default, Resource)]
 pub struct AssetServer {

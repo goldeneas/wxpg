@@ -2,7 +2,6 @@
 name = "wxpg"
 version = "0.1.0"
 edition = "2021"
-build = "build.rs"
 
 [dependencies]
 winit = { version = "0.30.5", features = ["rwh_06"] }

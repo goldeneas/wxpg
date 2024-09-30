@@ -6,4 +6,3 @@ pub mod mesh;
 pub mod vertex;
 pub mod model_mesh;
 pub mod multi_indexed_mesh;
-pub mod as_meshes;
