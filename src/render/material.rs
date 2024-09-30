@@ -1,4 +1,3 @@
-use core::panic;
 use std::sync::Arc;
 
 use crate::{resources::render_server::MaterialId, Texture};
@@ -10,7 +9,6 @@ pub struct Material {
     material_id: MaterialId,
 }
 
-// TODO: cache this
 impl Material {
     pub fn new(diffuse_texture: Arc<Texture>,
         material_id: MaterialId,

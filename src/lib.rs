@@ -9,10 +9,10 @@ pub mod pass_ext;
 pub mod device_ext;
 pub mod app;
 
-use std::borrow::BorrowMut;
 use std::sync::Arc;
 use std::time::Instant;
 
+use app::App;
 use bevy_ecs::world::Mut;
 use bevy_ecs::world::World;
 use render::model::*;
@@ -22,8 +22,6 @@ use resources::game_state::GameState;
 use resources::glyphon_renderer::GlyphonRenderer;
 use resources::render_server::RenderServer;
 use resources::screen_server::ScreenServer;
-use screens::menu::MenuScreen;
-use screens::screen::Screen;
 use render::texture::*;
 use render::instance_data::*;
 
@@ -31,7 +29,6 @@ use resources::default_pipeline::DefaultPipeline;
 use resources::frame_context::FrameContext;
 use resources::render_context::RenderContext;
 use resources::input::InputRes;
-use resources::input::KeyState;
 use resources::mouse::MouseRes;
 use wgpu::Features;
 use winit::application::ApplicationHandler;
@@ -46,18 +43,111 @@ use winit::{
 
 use world_ext::WorldExt;
 
-const SIM_DT: f32 = 1.0/60.0;
+const UPDATE_DT: f32 = 1.0/20.0;
 
-struct EngineState {
+pub struct Engine {
+    window: Option<Arc<Window>>,
     delta_time: Instant,
-    accumulator: f32,
-
+    time_accumulator: f32,
+    
+    app: Box<dyn App>,
     world: World,
-    screen_server: ScreenServer,
 }
 
-impl EngineState {
-    async fn new(window: Arc<Window>) -> Self {
+impl ApplicationHandler for Engine {
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _window_id: WindowId,
+        event: WindowEvent
+    ) {
+        match event {
+            WindowEvent::CloseRequested | WindowEvent::KeyboardInput {
+                event: KeyEvent {
+                    state: ElementState::Pressed,
+                    physical_key: PhysicalKey::Code(KeyCode::Escape),
+                    ..
+                },
+                ..
+            } => event_loop.exit(),
+            WindowEvent::Resized(physical_size) => {
+                self.resize(physical_size);
+            },
+            WindowEvent::RedrawRequested => {
+                self.redraw_requested();
+            },
+            WindowEvent::KeyboardInput {
+                event: KeyEvent {
+                    state: key_state,
+                    physical_key: PhysicalKey::Code(keycode),
+                    ..
+                },
+                ..
+            } => {
+                let world = &mut self.world;
+                self.app.input(world, &keycode, &key_state);
+            },
+            _ => {}
+        }
+
+        let world = &mut self.world;
+        let window = world
+            .render_context()
+            .window
+            .clone();
+
+        world.egui_renderer_mut()
+            .window_event(&window, &event);
+    }
+
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id: DeviceId,
+        event: DeviceEvent
+    ) {
+        if let DeviceEvent::MouseMotion { delta } = event {
+            let world = &mut self.world;
+            self.app.mouse_moved(world, delta);
+        }
+    }
+
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        let window = event_loop.create_window(WindowAttributes::default()).unwrap();
+        let window = Arc::new(window);
+        //window.set_cursor_grab(CursorGrabMode::Locked)
+        //    .or_else(|_e| window.set_cursor_grab(CursorGrabMode::Confined))
+        //    .unwrap();
+        //window.set_cursor_visible(false);
+
+        pollster::block_on(self.init(&window));
+        self.window = Some(window);
+    }
+
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        let window = self.window.as_ref().unwrap();
+        window.request_redraw();
+    }
+}
+
+impl Engine {
+    fn from_app(app: impl App + 'static) -> Self{
+        let window = Option::default();
+        let delta_time = Instant::now();
+        let time_accumulator = f32::default();
+        let world = World::default();
+        let app = Box::new(app);
+
+        Self {
+            window,
+            delta_time,
+            time_accumulator,
+            world,
+            app,
+        }
+    }
+
+    async fn init(&mut self, window: &Arc<Window>) {
         let size = window.inner_size();
 
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
@@ -102,16 +192,17 @@ impl EngineState {
 
         let depth_texture = Texture::depth_texture(&device, &config, "depth_texture");
 
-        let mut world = World::new();
+        let world = &mut self.world;
         world.init_resource::<InputRes>();
         world.init_resource::<MouseRes>();
         world.init_resource::<GameState>();
         world.init_resource::<AssetServer>();
         world.init_resource::<RenderServer>();
+        world.init_resource::<ScreenServer>();
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
         let glyphon_renderer = GlyphonRenderer::new(&device, &queue);
-        let egui_renderer = EguiRenderer::new(&device, &window);
+        let egui_renderer = EguiRenderer::new(&device, window);
         
         world.insert_resource(egui_renderer);
         world.insert_resource(glyphon_renderer);
@@ -123,7 +214,7 @@ impl EngineState {
         ));
 
         world.insert_resource(RenderContext {
-            window,
+            window: window.clone(),
             config,
             size,
             device,
@@ -131,120 +222,11 @@ impl EngineState {
             surface,
             depth_texture,
         });
-
-        let delta_time = Instant::now();
-        let accumulator = 0.0;
-
-        let screen_server = ScreenServer::default();
-
-        Self {
-            world,
-            delta_time,
-            accumulator,
-            screen_server,
-        }
-    }
-}
-
-#[derive(Default)]
-pub struct Engine {
-    window: Option<Arc<Window>>,
-    state: Option<EngineState>,
-    screen_queue: Option<Vec<Box<dyn Screen>>>,
-}
-
-impl ApplicationHandler for Engine {
-    fn window_event(
-        &mut self,
-        event_loop: &ActiveEventLoop,
-        window_id: WindowId,
-        event: WindowEvent
-    ) {
-        if self.window.as_ref().unwrap().id() != window_id {
-            return;
-        }
-
-        match event {
-            WindowEvent::CloseRequested | WindowEvent::KeyboardInput {
-                event: KeyEvent {
-                    state: ElementState::Pressed,
-                    physical_key: PhysicalKey::Code(KeyCode::Escape),
-                    ..
-                },
-                ..
-            } => event_loop.exit(),
-            WindowEvent::Resized(physical_size) => {
-                self.resize(physical_size);
-            },
-            WindowEvent::RedrawRequested => {
-                self.redraw_requested();
-            },
-            WindowEvent::KeyboardInput {
-                event: KeyEvent {
-                    state: key_state,
-                    physical_key: PhysicalKey::Code(keycode),
-                    ..
-                },
-                ..
-            } => self.input(&keycode, &key_state),
-            _ => {}
-        }
-
-        let world = self.state_mut()
-            .world
-            .borrow_mut();
-
-        let window = world.render_context()
-            .window.clone();
-
-        world.egui_renderer_mut()
-            .window_event(&window, &event);
     }
 
-    fn device_event(
-        &mut self,
-        _event_loop: &ActiveEventLoop,
-        _device_id: DeviceId,
-        event: DeviceEvent
-    ) {
-        match event {
-            DeviceEvent::MouseMotion { delta } => self.mouse_moved(delta),
-            _ => {}
-        }
-    }
-
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        if self.window.is_some() {
-            return;
-        }
-
-        let window = Arc::new(event_loop.create_window(WindowAttributes::default()).unwrap());
-        //window.set_cursor_grab(CursorGrabMode::Locked)
-        //    .or_else(|_e| window.set_cursor_grab(CursorGrabMode::Confined))
-        //    .unwrap();
-        //window.set_cursor_visible(false);
-
-        self.window = Some(window.clone());
-
-        let mut state = pollster::block_on(EngineState::new(window));
-        if let Some(screens) = self.screen_queue.take() {
-            state.screen_server.register_screens(screens);
-        }
-
-        self.state = Some(state);
-        self.start();
-    }
-
-    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-        let window = self.window.as_ref().unwrap();
-        window.request_redraw();
-    }
-}
-
-impl Engine {
     fn resize(&mut self, new_size: PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
-            let mut ctx = self.state_mut().world
+            let mut ctx = self.world
                 .render_context_mut();
 
             ctx.size = new_size;
@@ -255,67 +237,36 @@ impl Engine {
         }
     }
 
-    fn start(&mut self) {
-        let state_mut = self.state_mut();
-        let menu = MenuScreen::default();
-
-        state_mut.screen_server
-            .register_screen(menu);
-    }
-
-    fn input(&mut self, keycode: &KeyCode, key_state: &ElementState) {
-        let state = self.state_mut();
-        let input_res = &mut state.world.get_resource_mut::<InputRes>()
-            .unwrap();
-
-        match keycode {
-            KeyCode::KeyW => input_res.forward = KeyState::from(key_state),
-            KeyCode::KeyA => input_res.left = KeyState::from(key_state),
-            KeyCode::KeyS => input_res.backward = KeyState::from(key_state),
-            KeyCode::KeyD => input_res.right = KeyState::from(key_state),
-            _ => {},
-        }
-    }
-
-    fn mouse_moved(&mut self, delta: (f64, f64)) {
-        let mut mouse_res = self.state_mut().world
-            .resource_mut::<MouseRes>();
-
-        mouse_res.pos.0 += delta.0;
-        mouse_res.pos.1 += delta.1;
-    }
-
     fn redraw_requested(&mut self) {
-        let state = self.state_mut();
-        state.accumulator += state.delta_time
+        self.time_accumulator += self.delta_time
             .elapsed()
             .as_secs_f32();
-        state.delta_time = Instant::now();
+        self.delta_time = Instant::now();
 
-        while self.state_ref().accumulator >= SIM_DT {
+        while self.time_accumulator >= UPDATE_DT {
             self.update();
-            self.state_mut().accumulator -= SIM_DT;
+            self.time_accumulator -= UPDATE_DT;
         }
 
         self.draw();
     }
 
     fn update(&mut self) {
-        let state_mut = &mut self.state_mut();
-        let world = &mut state_mut.world;
-
-        state_mut.screen_server.update(world);
+        self.world.resource_scope(|world: &mut World, mut screen_server: Mut<ScreenServer>| {
+            screen_server.update(world);
+        });
     }
 
     fn draw(&mut self) {
-        let state_mut = &mut self.state_mut();
-        let world = &mut state_mut.world;
+        let world = &mut self.world;
         let render_ctx = world.render_context();
 
         let frame_ctx = FrameContext::new(render_ctx, None);
         world.insert_resource(frame_ctx);
 
-        state_mut.screen_server.draw(world);
+        world.resource_scope(|world: &mut World, mut screen_server: Mut<ScreenServer>| {
+            screen_server.draw(world);
+        });
 
         let mut frame_ctx = world
             .remove_resource::<FrameContext>()
@@ -343,34 +294,14 @@ impl Engine {
         render_ctx.queue.submit(buffers);
         frame_ctx.output.present();
     }
-
-    fn state_ref(&self) -> &EngineState {
-        self.state.as_ref().unwrap()
-    }
-
-    fn state_mut(&mut self) -> &mut EngineState {
-        self.state.as_mut().unwrap()
-    }
-
-    pub fn add_screen(&mut self, screen: impl Screen + 'static) {
-        let screen = Box::new(screen);
-
-        match &mut self.screen_queue {
-            Some(vector) => vector.push(screen),
-            None => {
-                let vector: Vec<Box<dyn Screen>> = vec![screen];
-                self.screen_queue = Some(vector);
-            }
-        }
-    }
 }
 
-pub fn run() {
+pub fn run(app: impl App + 'static) {
     env_logger::init();
 
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Poll);
 
-    let mut app = Engine::default();
-    let _ = event_loop.run_app(&mut app);
+    let mut engine = Engine::from_app(app);
+    let _ = event_loop.run_app(&mut engine);
 }

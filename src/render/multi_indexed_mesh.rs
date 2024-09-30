@@ -2,7 +2,7 @@ use wgpu::util::DrawIndexedIndirectArgs;
 
 use crate::{device_ext::VoxDeviceExt, resources::render_server::{MaterialId, ModelId, MultiIndexedMeshId}, InstanceData};
 
-use super::{vertex::{Index, Vertex}};
+use super::vertex::{Index, Vertex};
 
 pub trait AsMultiIndexedMesh {
     fn vertices(&self) -> &[Vertex];
@@ -12,9 +12,6 @@ pub trait AsMultiIndexedMesh {
     fn material_id(&self) -> MaterialId;
     fn draw_count(&self) -> u32;
 }
-
-// TODO: maybe use an array of textures on the shader
-// and select the texture based on a passed index
 
 pub struct MultiIndexedMesh {
     vertex_buffer: wgpu::Buffer,

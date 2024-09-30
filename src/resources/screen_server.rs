@@ -50,16 +50,6 @@ impl ScreenServer {
         self.run_schedule(world, state, Cycle::Update);
     }
 
-    pub fn register_screens(&mut self,
-        vector: Vec<Box<dyn Screen>>
-    ) {
-        vector
-            .into_iter()
-            .for_each(|screen| {
-                self.register_screen_boxed(screen);
-            });
-    }
-
     pub fn register_screen(&mut self, screen: impl Screen) {
         self.register_screen_boxed(Box::new(screen));
     }

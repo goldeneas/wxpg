@@ -1,19 +1,11 @@
-use std::{ops::Range, sync::Arc};
-
-use bevy_ecs::component::Component;
-
 use crate::{asset::Asset, resources::{asset_server::AssetServer, render_server::{MaterialId, RenderServer}}, InstanceData, Texture};
 
-use super::{material::Material, mesh::{AsMesh, Mesh}, phantom_mesh::ModelMesh, vertex::Vertex};
-
-pub trait AsModel {
-    fn meshes(&self) -> Vec<Box<dyn AsMesh>>;
-}
+use super::{model_mesh::ModelMesh, vertex::Vertex};
 
 #[derive(Debug, Default)]
 pub struct Model {
-    meshes: Vec<ModelMesh>,
     name: String,
+    meshes: Vec<ModelMesh>,
 }
 
 impl Asset for Model {
@@ -22,14 +14,13 @@ impl Asset for Model {
     }
 }
 
-//TODO remove anyhow
 impl Model {
     pub fn load(file_name: &str,
         asset_server: &mut AssetServer,
         render_server: &mut RenderServer,
         device: &wgpu::Device,
         queue: &wgpu::Queue
-    ) -> Vec<ModelMesh> {
+    ) -> Model {
         let (models, materials_opt) = tobj::load_obj(file_name, &tobj::GPU_LOAD_OPTIONS)
             .expect("Could not load file OBJ file");
 
@@ -96,6 +87,9 @@ impl Model {
                 }
             }).collect::<Vec<_>>();
 
-        meshes
+        Self {
+            name: file_name.to_string(),
+            meshes,
+        }
     }
 }
