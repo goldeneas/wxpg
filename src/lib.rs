@@ -113,6 +113,7 @@ impl ApplicationHandler for Engine {
     }
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        println!("{}", env!("OUT_DIR"));
         let window = event_loop.create_window(WindowAttributes::default()).unwrap();
         let window = Arc::new(window);
         //window.set_cursor_grab(CursorGrabMode::Locked)
