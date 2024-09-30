@@ -113,7 +113,7 @@ impl Texture {
         Texture::from_bytes(device, queue, &data, file_name)
     }
  
-    pub fn create_depth_texture(
+    pub fn depth_texture(
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
         name: &str

@@ -7,6 +7,7 @@ pub mod asset;
 pub mod world_ext;
 pub mod pass_ext;
 pub mod device_ext;
+pub mod app;
 
 use std::borrow::BorrowMut;
 use std::sync::Arc;
@@ -34,6 +35,7 @@ use resources::input::KeyState;
 use resources::mouse::MouseRes;
 use wgpu::Features;
 use winit::application::ApplicationHandler;
+use winit::dpi::PhysicalSize;
 use winit::event_loop::ActiveEventLoop;
 use winit::event_loop::ControlFlow;
 use winit::window::WindowAttributes;
@@ -44,9 +46,9 @@ use winit::{
 
 use world_ext::WorldExt;
 
-const SIM_DT: f32 = 1.0/144.0;
+const SIM_DT: f32 = 1.0/60.0;
 
-struct AppState {
+struct EngineState {
     delta_time: Instant,
     accumulator: f32,
 
@@ -54,7 +56,7 @@ struct AppState {
     screen_server: ScreenServer,
 }
 
-impl AppState {
+impl EngineState {
     async fn new(window: Arc<Window>) -> Self {
         let size = window.inner_size();
 
@@ -98,7 +100,7 @@ impl AppState {
 
         surface.configure(&device, &config);
 
-        let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
+        let depth_texture = Texture::depth_texture(&device, &config, "depth_texture");
 
         let mut world = World::new();
         world.init_resource::<InputRes>();
@@ -145,13 +147,13 @@ impl AppState {
 }
 
 #[derive(Default)]
-pub struct App {
+pub struct Engine {
     window: Option<Arc<Window>>,
-    state: Option<AppState>,
+    state: Option<EngineState>,
     screen_queue: Option<Vec<Box<dyn Screen>>>,
 }
 
-impl ApplicationHandler for App {
+impl ApplicationHandler for Engine {
     fn window_event(
         &mut self,
         event_loop: &ActiveEventLoop,
@@ -224,7 +226,7 @@ impl ApplicationHandler for App {
 
         self.window = Some(window.clone());
 
-        let mut state = pollster::block_on(AppState::new(window));
+        let mut state = pollster::block_on(EngineState::new(window));
         if let Some(screens) = self.screen_queue.take() {
             state.screen_server.register_screens(screens);
         }
@@ -239,8 +241,8 @@ impl ApplicationHandler for App {
     }
 }
 
-impl App {
-    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+impl Engine {
+    fn resize(&mut self, new_size: PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
             let mut ctx = self.state_mut().world
                 .render_context_mut();
@@ -248,7 +250,7 @@ impl App {
             ctx.size = new_size;
             ctx.config.width = new_size.width;
             ctx.config.height = new_size.height;
-            ctx.depth_texture = Texture::create_depth_texture(&ctx.device, &ctx.config, "depth_texture");
+            ctx.depth_texture = Texture::depth_texture(&ctx.device, &ctx.config, "depth_texture");
             ctx.surface.configure(&ctx.device, &ctx.config);
         }
     }
@@ -284,22 +286,17 @@ impl App {
     }
 
     fn redraw_requested(&mut self) {
-        {
-            let state = self.state_mut();
-            state.accumulator += state.delta_time
-                .elapsed()
-                .as_secs_f32();
-            state.delta_time = Instant::now();
+        let state = self.state_mut();
+        state.accumulator += state.delta_time
+            .elapsed()
+            .as_secs_f32();
+        state.delta_time = Instant::now();
+
+        while self.state_ref().accumulator >= SIM_DT {
+            self.update();
+            self.state_mut().accumulator -= SIM_DT;
         }
 
-        // TODO: check the update loop
-        //while self.state_ref().accumulator >= SIM_DT {
-        //    print!("running update!");
-        //    self.update();
-        //    self.state_mut().accumulator -= SIM_DT;
-        //}
-
-        self.update();
         self.draw();
     }
 
@@ -310,7 +307,6 @@ impl App {
         state_mut.screen_server.update(world);
     }
 
-    // TODO: make this code easier to read
     fn draw(&mut self) {
         let state_mut = &mut self.state_mut();
         let world = &mut state_mut.world;
@@ -336,23 +332,23 @@ impl App {
         });
 
         let render_ctx = world.render_context();
-        let buffers: Vec<wgpu::CommandBuffer> = frame_ctx
+        let buffers = frame_ctx
             .encoders
             .into_iter()
             .map(|encoder| {
                 encoder.finish()
             })
-            .collect();
+            .collect::<Vec<_>>();
 
         render_ctx.queue.submit(buffers);
         frame_ctx.output.present();
     }
 
-    fn state_ref(&self) -> &AppState {
+    fn state_ref(&self) -> &EngineState {
         self.state.as_ref().unwrap()
     }
 
-    fn state_mut(&mut self) -> &mut AppState {
+    fn state_mut(&mut self) -> &mut EngineState {
         self.state.as_mut().unwrap()
     }
 
@@ -375,6 +371,6 @@ pub fn run() {
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Poll);
 
-    let mut app = App::default();
+    let mut app = Engine::default();
     let _ = event_loop.run_app(&mut app);
 }
