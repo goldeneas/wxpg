@@ -13,6 +13,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use app::App;
+use app::AppConfig;
 use bevy_ecs::world::Mut;
 use bevy_ecs::world::World;
 use resources::asset_server::AssetServer;
@@ -34,6 +35,7 @@ use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::ActiveEventLoop;
 use winit::event_loop::ControlFlow;
+use winit::window::CursorGrabMode;
 use winit::window::WindowAttributes;
 use winit::window::WindowId;
 use winit::{
@@ -42,14 +44,13 @@ use winit::{
 
 use world_ext::WorldExt;
 
-const UPDATE_DT: f32 = 1.0/20.0;
-
 pub struct Engine {
     window: Option<Arc<Window>>,
     delta_time: Instant,
     time_accumulator: f32,
     
     app: Box<dyn App>,
+    app_config: AppConfig,
     world: World,
 }
 
@@ -114,10 +115,15 @@ impl ApplicationHandler for Engine {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let window = event_loop.create_window(WindowAttributes::default()).unwrap();
         let window = Arc::new(window);
-        //window.set_cursor_grab(CursorGrabMode::Locked)
-        //    .or_else(|_e| window.set_cursor_grab(CursorGrabMode::Confined))
-        //    .unwrap();
-        //window.set_cursor_visible(false);
+        let config = &self.app_config;
+
+        if config.cursor_locked {
+            window.set_cursor_grab(CursorGrabMode::Locked)
+                .or_else(|_e| window.set_cursor_grab(CursorGrabMode::Confined))
+                .unwrap();
+        }
+
+        window.set_cursor_visible(config.cursor_visible);
 
         pollster::block_on(self.init(&window));
         self.window = Some(window);
@@ -136,6 +142,7 @@ impl Engine {
         let time_accumulator = f32::default();
         let world = World::default();
         let app = Box::new(app);
+        let app_config = app.config();
 
         Self {
             window,
@@ -143,6 +150,7 @@ impl Engine {
             time_accumulator,
             world,
             app,
+            app_config,
         }
     }
 
@@ -221,6 +229,8 @@ impl Engine {
             surface,
             depth_texture,
         });
+
+        self.app.start();
     }
 
     fn resize(&mut self, new_size: PhysicalSize<u32>) {
@@ -242,9 +252,10 @@ impl Engine {
             .as_secs_f32();
         self.delta_time = Instant::now();
 
-        while self.time_accumulator >= UPDATE_DT {
+        let update_dt = self.app_config.update_dt;
+        while self.time_accumulator >= update_dt {
             self.update();
-            self.time_accumulator -= UPDATE_DT;
+            self.time_accumulator -= update_dt;
         }
 
         self.draw();

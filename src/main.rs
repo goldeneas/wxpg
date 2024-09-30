@@ -1,15 +1,11 @@
 use bevy_ecs::world::World;
-use wxpg::{app::App, resources::{input::{InputRes, KeyState}, mouse::MouseRes}, run};
+use wxpg::{app::{App, AppConfig}, resources::{input::{InputRes, KeyState}, mouse::MouseRes}, run};
 use winit::{event::ElementState, keyboard::KeyCode};
 
 #[derive(Default)]
 struct AppExample {}
 
 impl App for AppExample {
-    fn start(&mut self) {
-        println!("hi");
-    }
-
     fn input(&mut self,
         world: &mut World,
         keycode: &KeyCode,
@@ -33,6 +29,14 @@ impl App for AppExample {
 
         mouse_res.pos.0 += delta.0;
         mouse_res.pos.1 += delta.1;
+    }
+
+    fn config(&self) -> AppConfig {
+        AppConfig {
+            update_dt: 1.0/20.0,
+            cursor_locked: false,
+            cursor_visible: false,
+        }
     }
 }
 
