@@ -118,8 +118,9 @@ impl Texture {
     pub fn depth_texture(
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
-        name: &str
     ) -> Arc<Texture> {
+        let name = "depth_texture";
+
         let size = wgpu::Extent3d {
             width: config.width,
             height: config.height,

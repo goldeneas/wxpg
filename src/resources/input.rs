@@ -2,11 +2,13 @@ use bevy_ecs::prelude::*;
 use winit::event::ElementState;
 
 #[derive(Resource, Default, Debug)]
-pub struct InputRes {
+pub struct InputStorage {
+    pub mouse_pos: (f64, f64),
     pub forward: KeyState,
     pub right: KeyState,
     pub left: KeyState,
     pub backward: KeyState,
+    pub jump: KeyState,
 }
 
 #[derive(Default, Debug)]

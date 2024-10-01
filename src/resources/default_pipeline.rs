@@ -13,7 +13,6 @@ pub struct DefaultPipeline {
 
 impl DefaultPipeline {
     pub fn new(device: &wgpu::Device,
-        shader: &wgpu::ShaderModule,
         config: &wgpu::SurfaceConfiguration,
     ) -> Self {
         let camera_uniform: CameraUniform = Matrix4::identity()
@@ -83,11 +82,13 @@ impl DefaultPipeline {
             push_constant_ranges: &[],
         });
 
+        let shader = device.create_shader_module(wgpu::include_wgsl!("../shader.wgsl"));
+
         let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
             label: Some("Render Pipeline"),
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
-                module: shader,
+                module: &shader,
                 entry_point: "vs_main",
                 buffers: &[
                     Vertex::desc(),
@@ -96,7 +97,7 @@ impl DefaultPipeline {
                 compilation_options: PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
-                module: shader,
+                module: &shader,
                 entry_point: "fs_main",
                 targets: &[Some(wgpu::ColorTargetState {
                     format: config.format,
@@ -109,9 +110,7 @@ impl DefaultPipeline {
                 topology: wgpu::PrimitiveTopology::TriangleList,
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,
-                // TODO: enable cull
-                //cull_mode: Some(wgpu::Face::Back),
-                cull_mode: None,
+                cull_mode: Some(wgpu::Face::Back),
                 polygon_mode: wgpu::PolygonMode::Fill,
                 unclipped_depth: false,
                 conservative: false,

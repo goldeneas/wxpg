@@ -1,9 +1,14 @@
 use std::collections::HashMap;
 
 use bevy_ecs::{schedule::{Schedule, SystemConfigs}, system::Resource, world::World};
-use crate::{screens::screen::Screen, world_ext::WorldExt};
+use crate::{screens::screen::Screen, world_ext::WorldExt, EngineResources};
 
-use super::game_state::GameState;
+#[derive(Resource, Clone, Copy, Default, Eq, PartialEq, Hash, Debug)]
+pub enum GameState {
+    #[default]
+    Menu,
+    Game,
+}
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
 enum Cycle {
@@ -15,14 +20,15 @@ enum Cycle {
 
 #[derive(Resource, Default)]
 pub struct ScreenServer {
+    curr_state: GameState,
     last_state: Option<GameState>,
     registered_screens: Vec<Box<dyn Screen>>,
     registered_schedules: HashMap<GameState, HashMap<Cycle, Schedule>>,
 }
 
 impl ScreenServer {
-    pub fn draw(&mut self, world: &mut World) {
-        let state = world.game_state();
+    pub fn draw(&mut self, resources: &EngineResources) {
+        let state = self.curr_state;
 
         if self.should_run_start_systems(state) {
             self.set_last_state(state);

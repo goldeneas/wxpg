@@ -10,7 +10,7 @@ pub type MeshId = usize;
 pub type MultiIndexedMeshId = usize;
 
 #[derive(Resource, Default)]
-pub struct RenderServer {
+pub struct RenderStorage {
     meshes: Vec<Mesh>,
     multi_indexed_meshes: Vec<MultiIndexedMesh>,
     materials: Vec<Material>,
@@ -20,7 +20,7 @@ pub struct RenderServer {
     free_model_id: ModelId,
 }
 
-impl RenderServer {
+impl RenderStorage {
     pub fn push_material(&mut self,
         diffuse_texture: Arc<Texture>,
         device: &wgpu::Device,
