@@ -3,7 +3,7 @@ use std::process::exit;
 use bevy_ecs::world::World;
 use egui::{Align2, Button};
 
-use crate::{resources::game_state::GameState, world_ext::WorldExt};
+use crate::resources::screen_server::GameState;
 
 use super::screen::Screen;
 
@@ -11,7 +11,7 @@ use super::screen::Screen;
 pub struct MenuScreen {}
 
 impl Screen for MenuScreen {
-    fn start(&mut self, world: &mut World) {
+    fn start(&mut self) {
         let mut egui_renderer = world.egui_renderer_mut();
         egui_renderer.add_window(GameState::Menu, |ctx, state| {
             egui::Window::new("Main Menu")

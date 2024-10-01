@@ -1,4 +1,4 @@
-use crate::{screens::screen::Screen, EngineResources};
+use crate::screens::screen::Screen;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Hash, Debug)]
 pub enum GameState {
@@ -18,63 +18,61 @@ enum Cycle {
 #[derive(Default)]
 pub struct ScreenServer {
     curr_state: GameState,
-    last_state: Option<GameState>,
     registered_screens: Vec<Box<dyn Screen>>,
+    has_state_changed: bool,
 }
 
 impl ScreenServer {
-    pub fn draw(&mut self, resources: &mut EngineResources) {
-        let state = self.curr_state;
-
-        if self.should_run_start_systems(state) {
-            self.set_last_state(state);
-            self.emit_event(resources, Cycle::Start);
+    pub fn draw(&mut self) {
+        if self.should_run_start_systems() {
+            self.emit_event(Cycle::Start);
+            self.has_state_changed = false;
         }
 
-        self.emit_event(resources, Cycle::Draw);
-        self.emit_event(resources, Cycle::Ui);
+        self.emit_event(Cycle::Draw);
+        self.emit_event(Cycle::Ui);
     }
 
-    pub fn update(&mut self, resources: &mut EngineResources) {
-        let state = self.curr_state;
-
-        if self.should_run_start_systems(state) {
-            self.set_last_state(state);
-            self.emit_event(resources, Cycle::Start);
+    pub fn update(&mut self) {
+        if self.should_run_start_systems() {
+            self.emit_event(Cycle::Start);
+            self.has_state_changed = false;
         }
 
-        self.emit_event(resources, Cycle::Update);
+        self.emit_event(Cycle::Update);
     }
 
     pub fn register_screen(&mut self, screen: impl Screen) {
         self.registered_screens.push(Box::new(screen));
     }
 
-    fn emit_event(&mut self, resources: &mut EngineResources, cycle: Cycle) {
+    fn emit_event(&mut self, cycle: Cycle) {
         self.registered_screens
             .iter_mut()
             .for_each(|screen| {
-                if screen.game_state() != self.last_state.unwrap() {
+                if screen.game_state() != self.curr_state {
                     return;
                 }
 
                 match cycle {
-                    Cycle::Start => screen.start(resources),
-                    Cycle::Update => screen.update(resources),
-                    Cycle::Ui => screen.ui(resources),
-                    Cycle::Draw => screen.draw(resources),
+                    Cycle::Start => screen.start(),
+                    Cycle::Update => screen.update(),
+                    Cycle::Ui => screen.ui(),
+                    Cycle::Draw => screen.draw(),
                 }
             });
     }
 
-    fn set_last_state(&mut self, state: GameState) {
-        self.last_state = Some(state);
+    pub fn set_active_state(&mut self, state: GameState) {
+        self.curr_state = state;
+        self.has_state_changed = true;
     }
 
-    fn should_run_start_systems(&self, state: GameState) -> bool {
-        match self.last_state {
-            Some(last_state) => last_state != state,
-            None => true
-        }
+    pub fn state_mut(&mut self) -> &mut GameState {
+        &mut self.curr_state
+    }
+
+    fn should_run_start_systems(&self) -> bool {
+        self.has_state_changed
     }
 }

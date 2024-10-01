@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 
-use bevy_ecs::system::Resource;
 use egui::Context;
 use egui_wgpu::ScreenDescriptor;
 use egui_winit::winit::event::WindowEvent;
 use wgpu::CommandEncoderDescriptor;
 use winit::window::Window;
 
-use crate::resources::{frame_context::FrameContext, game_state::GameState, render_context::RenderContext};
+use crate::resources::{frame_context::FrameContext, render_context::RenderContext};
+
+use super::screen_server::GameState;
 
 type ScreenCallback = dyn Fn(&Context, &mut GameState) + Send + Sync;
 
-#[derive(Resource)]
 pub struct EguiRenderer {
     state: egui_winit::State,
     renderer: egui_wgpu::Renderer,
