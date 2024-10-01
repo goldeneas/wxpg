@@ -16,9 +16,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@stable
-
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+    - name: Run cargo tests
+      uses: Kristories/cargo-test@v1.0.0
+      with:
+        manifest-path: './Cargo.toml'
