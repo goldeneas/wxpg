@@ -11,10 +11,11 @@ env:
 
 jobs:
   build:
-
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
-    - name: Run tests
+    - name: Build
+      run: cargo build --verbose
+    - name: Test
       run: cargo test --verbose
