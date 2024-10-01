@@ -9,4 +9,4 @@ This project serves as a continuation of [vox](https://github.com/goldeneas/vox)
 - Multi indirect indexed rendering support
 
 ## License
-This work is marked with CC0 1.0.\
+This work is marked with CC0 1.0.
