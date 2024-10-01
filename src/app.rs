@@ -5,11 +5,8 @@ use winit::{event::ElementState, keyboard::KeyCode};
 pub trait App {
     fn config(&self) -> AppConfig;
 
-    fn start(&mut self) {}
-    fn input(&mut self,
-        world: &mut World,
-        keycode: &KeyCode,
-        key_state: &ElementState) {}
+    fn start(&mut self, world: &mut World) {}
+    fn input(&mut self, world: &mut World, keycode: &KeyCode, key_state: &ElementState) {}
     fn mouse_moved(&mut self, world: &mut World, delta: (f64, f64)) {}
 }
 

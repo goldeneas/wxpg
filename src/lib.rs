@@ -8,6 +8,12 @@ pub mod pass_ext;
 pub mod device_ext;
 pub mod app;
 
+pub use bevy_ecs;
+pub use egui;
+pub use egui_wgpu;
+pub use egui_winit;
+pub use wgpu;
+
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -225,7 +231,7 @@ impl Engine {
             depth_texture,
         });
 
-        self.app.start();
+        self.app.start(world);
     }
 
     fn resize(&mut self, new_size: PhysicalSize<u32>) {
