@@ -2,7 +2,13 @@ use std::{any::{Any, TypeId}, collections::HashMap, hash::{DefaultHasher, Hash, 
 
 use bevy_ecs::system::Resource;
 
-use crate::{asset::Asset, util::get_extension, Texture};
+use crate::{render::model::Model, util::get_extension, Texture};
+
+use super::render_server::RenderServer;
+
+pub trait Asset {
+    fn file_name(&self) -> &str;
+}
 
 #[derive(Default, Resource)]
 pub struct AssetServer {
@@ -49,10 +55,11 @@ impl AssetServer {
 
     // TODO: handles are now useless probably as we only need to return a texture id from the
     // render server
-    pub fn get_or_load<T>(&mut self, file_name: &str, device: &wgpu::Device, queue: &wgpu::Queue)
-        -> Option<Arc<T>>
-    where
-        T: Asset + Send + Sync + 'static,
+    pub fn get_or_load<T>(&mut self,
+        file_name: &str,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue
+    ) -> Option<Arc<T>> where T: Asset + Send + Sync + 'static,
     {
         let type_id = TypeId::of::<T>();
         let hash = {
@@ -87,10 +94,10 @@ impl AssetServer {
         self.insert(texture);
     }
 
-    //fn load_model(&mut self, file_name: &str, device: &wgpu::Device, queue: &wgpu::Queue) {
-    //    let model = Model::load(file_name, self, device, queue)
-    //        .unwrap();
-    //
-    //    self.insert(model);
-    //}
+    fn load_model(&mut self, file_name: &str, device: &wgpu::Device, queue: &wgpu::Queue) {
+        let model = Model::load(file_name, self, device, queue)
+            .unwrap();
+    
+        self.insert(model);
+    }
 }

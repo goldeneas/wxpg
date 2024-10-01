@@ -3,7 +3,6 @@ pub mod util;
 pub mod components;
 pub mod resources;
 pub mod screens;
-pub mod asset;
 pub mod world_ext;
 pub mod pass_ext;
 pub mod device_ext;
@@ -13,7 +12,6 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use app::App;
-use app::AppConfig;
 use bevy_ecs::world::Mut;
 use bevy_ecs::world::World;
 use resources::asset_server::AssetServer;
@@ -50,7 +48,6 @@ pub struct Engine {
     time_accumulator: f32,
     
     app: Box<dyn App>,
-    app_config: AppConfig,
     world: World,
 }
 
@@ -115,7 +112,7 @@ impl ApplicationHandler for Engine {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let window = event_loop.create_window(WindowAttributes::default()).unwrap();
         let window = Arc::new(window);
-        let config = &self.app_config;
+        let config = &self.app.config();
 
         if config.cursor_locked {
             window.set_cursor_grab(CursorGrabMode::Locked)
@@ -142,7 +139,6 @@ impl Engine {
         let time_accumulator = f32::default();
         let world = World::default();
         let app = Box::new(app);
-        let app_config = app.config();
 
         Self {
             window,
@@ -150,7 +146,6 @@ impl Engine {
             time_accumulator,
             world,
             app,
-            app_config,
         }
     }
 
@@ -252,7 +247,7 @@ impl Engine {
             .as_secs_f32();
         self.delta_time = Instant::now();
 
-        let update_dt = self.app_config.update_dt;
+        let update_dt = self.app.config().update_dt;
         while self.time_accumulator >= update_dt {
             self.update();
             self.time_accumulator -= update_dt;

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use bevy_ecs::system::Resource;
 
-use crate::{render::{material::Material, mesh::{AsMesh, Mesh}, multi_indexed_mesh::{AsMultiIndexedMesh, MultiIndexedMesh}}, Texture};
+use crate::{render::{material::Material, mesh::{AsMesh, Mesh}, model::Model, multi_indexed_mesh::{AsMultiIndexedMesh, MultiIndexedMesh}}, Texture};
 
 pub type MaterialId = usize;
 pub type ModelId = usize;
@@ -16,7 +16,7 @@ pub struct RenderServer {
     materials: Vec<Material>,
     free_mesh_id: MeshId,
     free_multi_indexed_mesh_id: MultiIndexedMeshId,
-    free_material_id: MeshId,
+    free_material_id: MaterialId,
     free_model_id: ModelId,
 }
 
@@ -132,6 +132,14 @@ impl RenderServer {
 
         self.free_model_id += 1;
         model_id
+    }
+
+    pub fn push_model(&mut self,
+        model: &Model,
+        device: &wgpu::Device
+    ) -> ModelId {
+        let meshes = &model.meshes;
+        self.push_meshes(&meshes, device)
     }
 
     pub fn get_material(&self, material_id: MaterialId) -> &Material {
