@@ -51,14 +51,11 @@ impl AssetServer {
             })
     }
 
-    // TODO: handles are now useless probably as we only need to return a texture id from the
-    // render server
     pub fn get_or_load<T>(&mut self,
         file_name: &str,
         device: &wgpu::Device,
         queue: &wgpu::Queue
-    ) -> Option<Arc<T>> where T: Asset + Send + Sync + 'static,
-    {
+    ) -> Option<Arc<T>> where T: Asset + Send + Sync + 'static {
         let type_id = TypeId::of::<T>();
         let hash = {
             let mut hasher = DefaultHasher::new();
@@ -86,9 +83,7 @@ impl AssetServer {
     }
 
     fn load_texture(&mut self, file_name: &str, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let texture = Texture::load(file_name, device, queue)
-            .unwrap();
-
+        let texture = Texture::load(file_name, device, queue);
         self.insert(texture);
     }
 

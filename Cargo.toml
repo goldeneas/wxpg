@@ -22,7 +22,6 @@ egui-winit = "0.29.0"
 rand = "0.8.5"
 binary-greedy-meshing = "0.3.5"
 egui_plot = "0.28.1"
-anyhow = "1.0"
 
 
 [build-dependencies]

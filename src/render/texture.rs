@@ -5,7 +5,7 @@ use crate::{resources::asset_server::{Asset, AssetServer}, util::load_bytes};
 
 #[derive(Debug)]
 pub struct Texture {
-    texture: wgpu::Texture,
+    _texture: wgpu::Texture,
     view: wgpu::TextureView,
     sampler: wgpu::Sampler,
     name: String,
@@ -35,8 +35,10 @@ impl Texture {
         queue: &wgpu::Queue,
         bytes: &[u8],
         file_name: &str,
-    ) -> anyhow::Result<Texture> {
-        let img = image::load_from_memory(bytes)?;
+    ) -> Texture {
+        let img = image::load_from_memory(bytes)
+            .expect("Could not load texture from bytes!");
+
         Self::from_image(device, queue, &img, file_name)
     }
  
@@ -45,7 +47,7 @@ impl Texture {
         queue: &wgpu::Queue,
         img: &image::DynamicImage,
         file_name: &str
-    ) -> anyhow::Result<Texture> {
+    ) -> Texture {
         let rgba = img.to_rgba8();
         let dimensions = img.dimensions();
  
@@ -96,20 +98,20 @@ impl Texture {
 
         let name = file_name.to_string();
 
-        Ok(Self {
-            texture,
+        Self {
+            _texture: texture,
             view,
             sampler,
             name,
-        })
+        }
     }
 
     pub fn load(
         file_name: &str,
         device: &wgpu::Device,
         queue: &wgpu::Queue
-    ) -> anyhow::Result<Texture> {
-        let data = load_bytes(file_name)?;
+    ) -> Texture {
+        let data = load_bytes(file_name);
         Texture::from_bytes(device, queue, &data, file_name)
     }
  
@@ -153,7 +155,7 @@ impl Texture {
         let name = name.to_string();
  
         let texture = Self {
-            texture,
+            _texture: texture,
             view,
             sampler,
             name,
