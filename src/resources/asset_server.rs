@@ -4,8 +4,6 @@ use bevy_ecs::system::Resource;
 
 use crate::{render::model::Model, util::get_extension, Texture};
 
-use super::render_server::RenderServer;
-
 pub trait Asset {
     fn file_name(&self) -> &str;
 }
@@ -82,7 +80,7 @@ impl AssetServer {
 
         match extension {
             Some("png") | Some("jpg") => self.load_texture(file_name, device, queue),
-            //Some("obj") => self.load_model(file_name, device, queue),
+            Some("obj") => self.load_model(file_name, device, queue),
             _ => {}
         }
     }
@@ -95,9 +93,7 @@ impl AssetServer {
     }
 
     fn load_model(&mut self, file_name: &str, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let model = Model::load(file_name, self, device, queue)
-            .unwrap();
-    
+        let model = Model::load(file_name, self, device, queue);
         self.insert(model);
     }
 }

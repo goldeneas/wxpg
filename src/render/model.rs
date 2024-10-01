@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{resources::{asset_server::{Asset, AssetServer}, render_server::{MaterialId, RenderServer}}, InstanceData, Texture};
 
 use super::{model_mesh::ModelMesh, vertex::Vertex};
@@ -6,7 +8,7 @@ use super::{model_mesh::ModelMesh, vertex::Vertex};
 pub struct Model {
     pub name: String,
     pub meshes: Vec<ModelMesh>,
-    pub textures: Vec<Texture>,
+    pub textures: Vec<Arc<Texture>>,
 }
 
 impl Asset for Model {
@@ -24,25 +26,20 @@ impl Model {
         let (models, materials_opt) = tobj::load_obj(file_name, &tobj::GPU_LOAD_OPTIONS)
             .expect("Could not load file OBJ file");
 
-        let material_ids: Vec<MaterialId> = match materials_opt {
+        let textures: Vec<Arc<Texture>> = match materials_opt {
             Ok(tobj_materials) => {
                 tobj_materials
                     .into_iter()
                     .map(|m| {
                         let diffuse_texture_name = &m.diffuse_texture.unwrap();
-                        let diffuse_texture = asset_server
+                        asset_server
                             .get_or_load(diffuse_texture_name, device, queue)
-                            .unwrap();
-
-                        render_server.push_material(diffuse_texture, device)
+                            .unwrap()
                     }).collect::<Vec<_>>()
             },
             Err(_) => {
                 let diffuse_texture = Texture::debug(asset_server, device, queue);
-                let material_id = render_server
-                    .push_material(diffuse_texture, device);
-
-                vec![material_id]
+                vec![diffuse_texture]
             }
         };
 
@@ -75,9 +72,10 @@ impl Model {
                 let instance_data = InstanceData::from_position((0.0, 0.0, 0.0));
                 let instances = vec![instance_data];
 
-                // we need to convert the meshes' material idxs to our own
-                // material ids
-                let material_id = material_ids[m.mesh.material_id.unwrap_or(0)];
+                // this material id is relative to the textures in the model.
+                // it will be converted to render_server's ids when pushing
+                // the model
+                let material_id = m.mesh.material_id.unwrap_or(0);
 
                 ModelMesh {
                     vertices,
@@ -89,6 +87,7 @@ impl Model {
 
         Self {
             name: file_name.to_string(),
+            textures,
             meshes,
         }
     }

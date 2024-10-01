@@ -2,7 +2,7 @@ use crate::{resources::render_server::MaterialId, InstanceData};
 
 use super::{mesh::AsMesh, vertex::{Index, Vertex}};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModelMesh {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<Index>,

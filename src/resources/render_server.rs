@@ -138,7 +138,20 @@ impl RenderServer {
         model: &Model,
         device: &wgpu::Device
     ) -> ModelId {
-        let meshes = &model.meshes;
+        let mut meshes = model.meshes.clone();
+
+        // convert model's texture ids to material ids
+        for (i, texture) in model.textures.iter().enumerate() {
+            let material_id = self.push_material(texture.clone(), device);
+
+            meshes.iter_mut()
+                .for_each(|mesh| {
+                    if mesh.material_id == i {
+                        mesh.material_id = material_id;
+                    }
+                });
+        }
+
         self.push_meshes(&meshes, device)
     }
 
