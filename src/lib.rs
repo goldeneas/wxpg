@@ -140,9 +140,9 @@ impl EngineResources {
 
 pub struct Engine {
     window: Option<Arc<Window>>,
+    resources: Option<EngineResources>,
     delta_time: Instant,
     time_accumulator: f32,
-    resources: Option<EngineResources>,
     
     app: Box<dyn App>,
 }
@@ -263,9 +263,9 @@ impl Engine {
     }
 
     fn update(&mut self) {
-        let resources = self.resources.as_mut().unwrap();
+        let mut resources = self.resources.as_mut().unwrap();
         resources.screen_server
-            .update(&mut self.world);
+            .update(&mut resources);
     }
 
     fn draw(&mut self) {

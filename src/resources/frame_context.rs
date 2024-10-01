@@ -1,8 +1,5 @@
-use bevy_ecs::system::Resource;
-
 use super::render_context::RenderContext;
 
-#[derive(Resource)]
 pub struct FrameContext {
     pub output: wgpu::SurfaceTexture,
     pub view: wgpu::TextureView,
