@@ -6,7 +6,7 @@ use egui_winit::winit::event::WindowEvent;
 use wgpu::CommandEncoderDescriptor;
 use winit::window::Window;
 
-use crate::resources::{frame_context::FrameContext, render_context::RenderContext};
+use crate::{resources::frame_context::FrameContext, DrawContext};
 
 use super::screen_server::GameState;
 
@@ -51,6 +51,7 @@ impl EguiRenderer {
         let _ = self.state.on_window_event(window, event);
     }
 
+    // TODO return a en EguiWindowId to let user manage visibility of window
     pub fn add_window(&mut self,
         required_state: GameState,
         func: impl Fn(&Context, &mut GameState) + Send + Sync + 'static
@@ -60,17 +61,17 @@ impl EguiRenderer {
     }
 
     pub fn draw(&mut self,
-        render_ctx: &RenderContext,
+        draw_ctx: &DrawContext,
         frame_ctx: &mut FrameContext,
         state: &mut GameState,
     ) {
-        let device = &render_ctx.device;
-        let queue = &render_ctx.queue;
-        let config = &render_ctx.config;
-        let window = &render_ctx.window;
+        let device = &draw_ctx.device;
+        let queue = &draw_ctx.queue;
+        let config = &draw_ctx.config;
+        let window = &draw_ctx.window;
 
         let view = &frame_ctx.view;
-        let mut encoder = render_ctx.device.create_command_encoder(&CommandEncoderDescriptor {
+        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
             label: Some("Egui Encoder"),
         });
 

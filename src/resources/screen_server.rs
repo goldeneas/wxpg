@@ -15,30 +15,21 @@ enum Cycle {
     Update,
 }
 
+// TODO make this generic like Action
+
 #[derive(Default)]
 pub struct ScreenServer {
-    curr_state: GameState,
+    state: GameState,
     registered_screens: Vec<Box<dyn Screen>>,
-    has_state_changed: bool,
 }
 
 impl ScreenServer {
     pub fn draw(&mut self) {
-        if self.should_run_start_systems() {
-            self.emit_event(Cycle::Start);
-            self.has_state_changed = false;
-        }
-
         self.emit_event(Cycle::Draw);
         self.emit_event(Cycle::Ui);
     }
 
     pub fn update(&mut self) {
-        if self.should_run_start_systems() {
-            self.emit_event(Cycle::Start);
-            self.has_state_changed = false;
-        }
-
         self.emit_event(Cycle::Update);
     }
 
@@ -50,7 +41,7 @@ impl ScreenServer {
         self.registered_screens
             .iter_mut()
             .for_each(|screen| {
-                if screen.game_state() != self.curr_state {
+                if screen.game_state() != self.state {
                     return;
                 }
 
@@ -63,16 +54,12 @@ impl ScreenServer {
             });
     }
 
-    pub fn set_active_state(&mut self, state: GameState) {
-        self.curr_state = state;
-        self.has_state_changed = true;
+    pub fn set_state(&mut self, state: GameState) {
+        self.state = state;
+        self.emit_event(Cycle::Start);
     }
 
     pub fn state_mut(&mut self) -> &mut GameState {
-        &mut self.curr_state
-    }
-
-    fn should_run_start_systems(&self) -> bool {
-        self.has_state_changed
+        &mut self.state
     }
 }

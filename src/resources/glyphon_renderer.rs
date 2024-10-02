@@ -2,7 +2,7 @@ use bevy_ecs::system::Resource;
 use glyphon::{Attrs, Buffer, Cache, Color, FontSystem, Metrics, Resolution, Shaping, SwashCache, TextArea, TextAtlas, TextBounds, TextRenderer, Viewport};
 use wgpu::{CommandEncoderDescriptor, Device, MultisampleState, Queue};
 
-use crate::resources::{frame_context::FrameContext, render_context::RenderContext};
+use crate::{resources::frame_context::FrameContext, DrawContext};
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub struct LabelId(u32);
@@ -129,21 +129,21 @@ impl GlyphonRenderer {
     }
 
     pub fn draw(&mut self,
-        render_ctx: &RenderContext,
+        draw_ctx: &DrawContext,
         frame_ctx: &mut FrameContext,
     ) {
         let view = &frame_ctx.view;
-        let mut encoder = render_ctx.device.create_command_encoder(&CommandEncoderDescriptor {
+        let mut encoder = draw_ctx.device.create_command_encoder(&CommandEncoderDescriptor {
             label: Some("Glyphon Label Encoder"),
         });
 
         self.viewport
-            .update(&render_ctx.queue, Resolution {
-                width: render_ctx.config.width,
-                height: render_ctx.config.height,
+            .update(&draw_ctx.queue, Resolution {
+                width: draw_ctx.config.width,
+                height: draw_ctx.config.height,
             });
 
-        self.prepare(&render_ctx.device, &render_ctx.queue);
+        self.prepare(&draw_ctx.device, &draw_ctx.queue);
 
         let mut pass = Self::pass(&mut encoder, view);
         self.renderer.render(&self.text_atlas, &self.viewport, &mut pass)

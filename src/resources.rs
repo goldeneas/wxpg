@@ -1,5 +1,4 @@
-pub mod input;
-pub mod render_context;
+pub mod input_server;
 pub mod default_pipeline;
 pub mod frame_context;
 pub mod asset_server;

@@ -5,20 +5,19 @@ pub mod resources;
 pub mod screens;
 pub mod pass_ext;
 pub mod device_ext;
-pub mod app;
 
 pub use bevy_ecs;
 pub use egui;
 pub use egui_wgpu;
 pub use egui_winit;
-use resources::screen_server::GameState;
+use resources::input_server::Action;
+use resources::input_server::InputServer;
+use screens::screen::Screen;
 pub use wgpu;
 
 use std::sync::Arc;
 use std::time::Instant;
 
-use app::App;
-use bevy_ecs::world::Mut;
 use bevy_ecs::world::World;
 use resources::asset_server::AssetServer;
 use resources::egui_renderer::EguiRenderer;
@@ -30,8 +29,6 @@ use render::instance_data::*;
 
 use resources::default_pipeline::DefaultPipeline;
 use resources::frame_context::FrameContext;
-use resources::render_context::RenderContext;
-use resources::input::InputStorage;
 use wgpu::Features;
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
@@ -43,24 +40,17 @@ use winit::{
     event::*, event_loop::EventLoop, keyboard::{KeyCode, PhysicalKey}, window::Window
 };
 
-pub struct EngineContext {
-    delta_time: Instant,
-    time_accumulator: f32,
-    update_dt: f32,
-
-    input_storage: InputStorage,
-    asset_server: AssetServer,
-    render_storage: RenderStorage,
-    screen_server: ScreenServer,
-
-    glyphon_renderer: GlyphonRenderer,
-    egui_renderer: EguiRenderer,
-    default_pipeline: DefaultPipeline,
-    render_context: RenderContext,
-    world: World,
+pub struct DrawContext {
+    pub window: Arc<Window>,
+    pub depth_texture: Arc<Texture>,
+    pub device: wgpu::Device,
+    pub surface: wgpu::Surface<'static>,
+    pub config: wgpu::SurfaceConfiguration,
+    pub queue: wgpu::Queue,
+    pub window_size: winit::dpi::PhysicalSize<u32>,
 }
 
-impl EngineContext {
+impl DrawContext {
     pub async fn new(window: &Arc<Window>) -> Self {
         let size = window.inner_size();
 
@@ -105,25 +95,78 @@ impl EngineContext {
         surface.configure(&device, &config);
 
         let depth_texture = Texture::depth_texture(&device, &config);
-        let world = World::default();
 
-        let input_storage = InputStorage::default();
-        let asset_server = AssetServer::default();
-        let render_storage = RenderStorage::default();
-        let screen_server = ScreenServer::default();
-
-        let glyphon_renderer = GlyphonRenderer::new(&device, &queue);
-        let egui_renderer = EguiRenderer::new(&device, window);
-        let default_pipeline = DefaultPipeline::new(&device, &config);
-        let render_context = RenderContext {
+        DrawContext {
             window: window.clone(),
             config,
-            size,
+            window_size: size,
             device,
             queue,
             surface,
             depth_texture,
-        };
+        }
+    }
+}
+
+pub struct RendererContext {
+    pub glyphon_renderer: GlyphonRenderer,
+    pub egui_renderer: EguiRenderer,
+    pub render_storage: RenderStorage,
+    pub default_pipeline: DefaultPipeline,
+}
+
+impl RendererContext {
+    pub fn new(draw_ctx: &DrawContext) -> Self {
+        let device = &draw_ctx.device;
+        let queue = &draw_ctx.queue;
+        let window = &draw_ctx.window;
+        let config = &draw_ctx.config;
+
+        let glyphon_renderer = GlyphonRenderer::new(device, queue);
+        let egui_renderer = EguiRenderer::new(device, window);
+        let default_pipeline = DefaultPipeline::new(device, config);
+        let render_storage = RenderStorage::default();
+
+        Self {
+            default_pipeline,
+            glyphon_renderer,
+            egui_renderer,
+            render_storage,
+        }
+    }
+}
+
+pub struct ServerContext<T: Action> {
+    pub asset_server: AssetServer,
+    pub screen_server: ScreenServer,
+    pub input_server: InputServer<T>
+}
+
+impl<T: Action> Default for ServerContext<T> {
+    fn default() -> Self {
+        let asset_server = AssetServer::default();
+        let screen_server = ScreenServer::default();
+        let input_server = InputServer::<T>::default();
+
+        Self {
+            asset_server,
+            screen_server,
+            input_server,
+        }
+    }
+}
+
+pub struct InternalEngine {
+    delta_time: Instant,
+    time_accumulator: f32,
+    update_dt: f32,
+
+    world: World,
+}
+
+impl InternalEngine {
+    pub fn new() -> Self {
+        let world = World::default();
 
         let update_dt = 1.0/20.0;
         let delta_time = Instant::now();
@@ -132,59 +175,58 @@ impl EngineContext {
         Self {
             delta_time,
             time_accumulator,
-            input_storage,
-            asset_server,
-            render_storage,
-            screen_server,
             update_dt,
             world,
-            glyphon_renderer,
-            egui_renderer,
-            default_pipeline,
-            render_context,
         }
     }
 
-    fn resize(&mut self, new_size: PhysicalSize<u32>) {
+    fn resize(&mut self, draw_ctx: &mut DrawContext, new_size: PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
-            let ctx = &mut self.render_context;
+            draw_ctx.window_size = new_size;
+            draw_ctx.config.width = new_size.width;
+            draw_ctx.config.height = new_size.height;
 
-            ctx.size = new_size;
-            ctx.config.width = new_size.width;
-            ctx.config.height = new_size.height;
-            ctx.depth_texture = Texture::depth_texture(&ctx.device, &ctx.config);
-            ctx.surface.configure(&ctx.device, &ctx.config);
+            let device = &draw_ctx.device;
+            let config = &draw_ctx.config;
+            draw_ctx.depth_texture = Texture::depth_texture(device, config);
+            draw_ctx.surface.configure(device, config);
         }
     }
 
-    fn redraw_requested(&mut self) {
+    fn redraw_requested<T: Action>(&mut self, server_ctx: &mut ServerContext<T>,
+        renderer_ctx: &mut RendererContext,
+        draw_ctx: &DrawContext
+    ) {
         self.time_accumulator += self.delta_time
             .elapsed()
             .as_secs_f32();
         self.delta_time = Instant::now();
 
         while self.time_accumulator >= self.update_dt {
-            self.update();
+            self.update(server_ctx);
             self.time_accumulator -= self.update_dt;
         }
 
-        self.draw();
+        self.draw(server_ctx, renderer_ctx, draw_ctx);
     }
 
-    fn update(&mut self) {
-        self.screen_server.update();
+    fn update<T: Action>(&self, server_ctx: &mut ServerContext<T>) {
+        server_ctx.screen_server.update();
     }
 
-    fn draw(&mut self) {
-        let render_ctx = &self.render_context;
-        let mut frame_ctx = FrameContext::new(render_ctx, None);
+    fn draw<T: Action>(&mut self,
+        server_ctx: &mut ServerContext<T>,
+        renderer_ctx: &mut RendererContext,
+        draw_ctx: &DrawContext
+    ) {
+        let mut frame_ctx = FrameContext::new(draw_ctx, None);
+        let screen_server = &mut server_ctx.screen_server;
 
-        self.screen_server.draw();
+        screen_server.draw();
 
-        let state = self.screen_server.state_mut();
-        self.egui_renderer.draw(render_ctx, &mut frame_ctx, state);
-
-        self.glyphon_renderer.draw(render_ctx, &mut frame_ctx);
+        let state = screen_server.state_mut();
+        renderer_ctx.egui_renderer.draw(draw_ctx, &mut frame_ctx, state);
+        renderer_ctx.glyphon_renderer.draw(draw_ctx, &mut frame_ctx);
 
         let buffers = frame_ctx
             .encoders
@@ -194,32 +236,41 @@ impl EngineContext {
             })
             .collect::<Vec<_>>();
 
-        render_ctx.queue.submit(buffers);
+        draw_ctx.queue.submit(buffers);
         frame_ctx.output.present();
     }
 }
 
-pub struct Engine {
+pub struct Engine<T: Action> {
     window: Option<Arc<Window>>,
-    engine_context: Option<EngineContext>,
-    app: Box<dyn App>,
+    engine_state: Option<InternalEngine>,
+    draw_ctx: Option<DrawContext>,
+    renderer_ctx: Option<RendererContext>,
+    server_ctx: Option<ServerContext<T>>,
+    screen: Box<dyn Screen>,
 }
 
-impl Engine {
-    fn new(app: impl App + 'static) -> Self{
+impl<T: Action> Engine<T> {
+    fn new(screen: impl Screen + 'static) -> Self{
         let window = Option::default();
-        let app = Box::new(app);
-        let engine_context = Option::default();
+        let screen = Box::new(screen);
+        let engine_state = Option::default();
+        let draw_ctx = Option::default();
+        let renderer_ctx = Option::default();
+        let server_ctx = Option::default();
 
         Self {
+            server_ctx,
+            renderer_ctx,
+            draw_ctx,
             window,
-            app,
-            engine_context,
+            screen,
+            engine_state,
         }
     }
 }
 
-impl ApplicationHandler for Engine {
+impl<T: Action> ApplicationHandler for Engine<T> {
     fn window_event(
         &mut self,
         event_loop: &ActiveEventLoop,
@@ -236,30 +287,35 @@ impl ApplicationHandler for Engine {
                 ..
             } => event_loop.exit(),
             WindowEvent::Resized(physical_size) => {
-                let engine_ctx = self.engine_context.as_mut().unwrap();
-                engine_ctx.resize(physical_size);
+                let engine_state = self.engine_state.as_mut().unwrap();
+                let draw_ctx = self.draw_ctx.as_mut().unwrap();
+                engine_state.resize(draw_ctx, physical_size);
             },
             WindowEvent::RedrawRequested => {
-                let engine_ctx = self.engine_context.as_mut().unwrap();
-                engine_ctx.redraw_requested();
+                let engine_state = self.engine_state.as_mut().unwrap();
+                let draw_ctx = self.draw_ctx.as_ref().unwrap();
+                let renderer_ctx = self.renderer_ctx.as_mut().unwrap();
+                let server_ctx = self.server_ctx.as_mut().unwrap();
+                engine_state.redraw_requested(server_ctx, renderer_ctx, draw_ctx);
             },
             WindowEvent::KeyboardInput {
                 event: KeyEvent {
-                    state: key_state,
+                    state,
                     physical_key: PhysicalKey::Code(keycode),
                     ..
                 },
                 ..
             } => {
-                let engine_ctx = self.engine_context.as_mut().unwrap();
-                self.app.input(engine_ctx, &keycode, &key_state);
+                let server_ctx = self.server_ctx.as_mut().unwrap();
+                server_ctx.input_server
+                    .keyboard_input(keycode, state);
             },
             _ => {}
         }
 
         let window = self.window.as_mut().unwrap();
-        let engine_ctx = self.engine_context.as_mut().unwrap();
-        engine_ctx.egui_renderer
+        let renderer_ctx = self.renderer_ctx.as_mut().unwrap();
+        renderer_ctx.egui_renderer
             .window_event(&window, &event);
     }
 
@@ -270,20 +326,25 @@ impl ApplicationHandler for Engine {
         event: DeviceEvent
     ) {
         if let DeviceEvent::MouseMotion { delta } = event {
-            let resources = self.engine_context.as_mut().unwrap();
-            self.app.mouse_moved(resources, delta);
+            let server_ctx = self.server_ctx.as_mut().unwrap();
+            server_ctx.input_server
+                .mouse_delta(delta);
         }
     }
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let window = event_loop.create_window(WindowAttributes::default()).unwrap();
         let window = Arc::new(window);
-        let mut engine_ctx = pollster::block_on(EngineContext::new(&window));
-
-        self.app.start(&mut engine_ctx);
+        let draw_ctx = pollster::block_on(DrawContext::new(&window));
+        let renderer_ctx = RendererContext::new(&draw_ctx);
+        let server_ctx = ServerContext::<T>::default();
+        let engine_state = InternalEngine::new();
 
         self.window = Some(window);
-        self.engine_context = Some(engine_ctx);
+        self.draw_ctx = Some(draw_ctx);
+        self.renderer_ctx = Some(renderer_ctx);
+        self.server_ctx = Some(server_ctx);
+        self.engine_state = Some(engine_state);
     }
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
@@ -292,12 +353,12 @@ impl ApplicationHandler for Engine {
     }
 }
 
-pub fn run(app: impl App + 'static) {
+pub fn run<T: Action>(screen: impl Screen + 'static) {
     env_logger::init();
 
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Poll);
 
-    let mut engine = Engine::new(app);
+    let mut engine = Engine::<T>::new(screen);
     let _ = event_loop.run_app(&mut engine);
 }

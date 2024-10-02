@@ -1,6 +1,5 @@
 use std::process::exit;
 
-use bevy_ecs::world::World;
 use egui::{Align2, Button};
 
 use crate::resources::screen_server::GameState;
