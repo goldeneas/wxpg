@@ -51,8 +51,11 @@ pub struct DrawContext {
 }
 
 impl DrawContext {
-    pub async fn new(window: &Arc<Window>) -> Self {
-        let size = window.inner_size();
+    pub async fn new(event_loop: &ActiveEventLoop) -> Self {
+        let window = event_loop.create_window(WindowAttributes::default())
+            .unwrap();
+        let window = Arc::new(window);
+        let window_size = window.inner_size();
 
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::PRIMARY,
@@ -84,8 +87,8 @@ impl DrawContext {
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
-            width: size.width,
-            height: size.height,
+            width: window_size.width,
+            height: window_size.height,
             present_mode: surface_caps.present_modes[0],
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
@@ -97,9 +100,9 @@ impl DrawContext {
         let depth_texture = Texture::depth_texture(&device, &config);
 
         DrawContext {
-            window: window.clone(),
+            window,
             config,
-            window_size: size,
+            window_size,
             device,
             queue,
             surface,
@@ -242,7 +245,6 @@ impl InternalEngine {
 }
 
 pub struct Engine<T: Action> {
-    window: Option<Arc<Window>>,
     engine_state: Option<InternalEngine>,
     draw_ctx: Option<DrawContext>,
     renderer_ctx: Option<RendererContext>,
@@ -252,7 +254,6 @@ pub struct Engine<T: Action> {
 
 impl<T: Action> Engine<T> {
     fn new(screen: impl Screen + 'static) -> Self{
-        let window = Option::default();
         let screen = Box::new(screen);
         let engine_state = Option::default();
         let draw_ctx = Option::default();
@@ -263,7 +264,6 @@ impl<T: Action> Engine<T> {
             server_ctx,
             renderer_ctx,
             draw_ctx,
-            window,
             screen,
             engine_state,
         }
@@ -313,10 +313,10 @@ impl<T: Action> ApplicationHandler for Engine<T> {
             _ => {}
         }
 
-        let window = self.window.as_mut().unwrap();
+        let draw_ctx = self.draw_ctx.as_ref().unwrap();
         let renderer_ctx = self.renderer_ctx.as_mut().unwrap();
         renderer_ctx.egui_renderer
-            .window_event(&window, &event);
+            .window_event(&draw_ctx.window, &event);
     }
 
     fn device_event(
@@ -333,14 +333,11 @@ impl<T: Action> ApplicationHandler for Engine<T> {
     }
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let window = event_loop.create_window(WindowAttributes::default()).unwrap();
-        let window = Arc::new(window);
-        let draw_ctx = pollster::block_on(DrawContext::new(&window));
+        let draw_ctx = pollster::block_on(DrawContext::new(event_loop));
         let renderer_ctx = RendererContext::new(&draw_ctx);
         let server_ctx = ServerContext::<T>::default();
         let engine_state = InternalEngine::new();
 
-        self.window = Some(window);
         self.draw_ctx = Some(draw_ctx);
         self.renderer_ctx = Some(renderer_ctx);
         self.server_ctx = Some(server_ctx);
@@ -348,8 +345,8 @@ impl<T: Action> ApplicationHandler for Engine<T> {
     }
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-        let window = self.window.as_ref().unwrap();
-        window.request_redraw();
+        let draw_ctx = self.draw_ctx.as_ref().unwrap();
+        draw_ctx.window.request_redraw();
     }
 }
 
