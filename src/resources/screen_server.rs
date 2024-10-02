@@ -59,7 +59,7 @@ impl ScreenServer {
         self.emit_event(Cycle::Start);
     }
 
-    pub fn state_mut(&mut self) -> &mut GameState {
-        &mut self.state
+    pub fn state(&self) -> GameState {
+        self.state
     }
 }

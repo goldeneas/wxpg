@@ -8,9 +8,9 @@ use winit::window::Window;
 
 use crate::{resources::frame_context::FrameContext, DrawContext};
 
-use super::screen_server::GameState;
+use super::screen_server::{GameState, ScreenServer};
 
-type ScreenCallback = dyn Fn(&Context, &mut GameState) + Send + Sync;
+type ScreenCallback = dyn Fn(&Context, &mut ScreenServer) + Send + Sync;
 
 pub struct EguiRenderer {
     state: egui_winit::State,
@@ -54,7 +54,7 @@ impl EguiRenderer {
     // TODO return a en EguiWindowId to let user manage visibility of window
     pub fn add_window(&mut self,
         required_state: GameState,
-        func: impl Fn(&Context, &mut GameState) + Send + Sync + 'static
+        func: impl Fn(&Context, &mut ScreenServer) + Send + Sync + 'static
     ) {
         let func = Box::new(func);
         self.window_funcs.insert(required_state, func);
@@ -63,7 +63,7 @@ impl EguiRenderer {
     pub fn draw(&mut self,
         draw_ctx: &DrawContext,
         frame_ctx: &mut FrameContext,
-        state: &mut GameState,
+        screen_server: &mut ScreenServer,
     ) {
         let device = &draw_ctx.device;
         let queue = &draw_ctx.queue;
@@ -79,16 +79,17 @@ impl EguiRenderer {
         let context = self.state.egui_ctx();
 
         // TODO: add egui_plot
+        let state = screen_server.state();
 
         context.begin_pass(input);
         self.window_funcs
             .iter()
             .for_each(|(required_state, func)| {
-                if required_state != state {
+                if *required_state != state {
                     return;
                 }
 
-                func(context, state);
+                func(context, screen_server);
             });
         let output = context.end_pass();
 

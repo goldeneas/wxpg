@@ -227,8 +227,7 @@ impl InternalEngine {
 
         screen_server.draw();
 
-        let state = screen_server.state_mut();
-        renderer_ctx.egui_renderer.draw(draw_ctx, &mut frame_ctx, state);
+        renderer_ctx.egui_renderer.draw(draw_ctx, &mut frame_ctx, screen_server);
         renderer_ctx.glyphon_renderer.draw(draw_ctx, &mut frame_ctx);
 
         let buffers = frame_ctx

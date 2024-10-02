@@ -2,7 +2,7 @@ use std::process::exit;
 
 use egui::{Align2, Button};
 
-use crate::resources::screen_server::GameState;
+use crate::{resources::screen_server::GameState, RendererContext};
 
 use super::screen::Screen;
 
@@ -10,9 +10,9 @@ use super::screen::Screen;
 pub struct MenuScreen {}
 
 impl Screen for MenuScreen {
-    fn start(&mut self) {
-        let mut egui_renderer = world.egui_renderer_mut();
-        egui_renderer.add_window(GameState::Menu, |ctx, state| {
+    fn start(&mut self, renderer_ctx: &mut RendererContext) {
+        let egui_renderer = &mut renderer_ctx.egui_renderer;
+        egui_renderer.add_window(GameState::Menu, |ctx, screen_server| {
             egui::Window::new("Main Menu")
                 .default_open(true)
                 .default_size([200.0, 85.0])
@@ -21,7 +21,7 @@ impl Screen for MenuScreen {
                 .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
                 .show(ctx, |ui| {
                     if ui.add_sized([200.0, 30.0], Button::new("Play")).clicked() {
-                        state.set(GameState::Game);
+                        screen_server.set_state(GameState::Game);
                     }
     
                     if ui.add_sized([200.0, 30.0], Button::new("Quit")).clicked() {
