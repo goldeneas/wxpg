@@ -2,7 +2,7 @@ use std::process::exit;
 
 use egui::{Align2, Button};
 
-use crate::{resources::screen_server::GameState, RendererContext};
+use crate::{resources::screen_server::GameState, DrawContext, RendererContext, ServerContext};
 
 use super::screen::Screen;
 
@@ -10,7 +10,11 @@ use super::screen::Screen;
 pub struct MenuScreen {}
 
 impl Screen for MenuScreen {
-    fn start(&mut self, renderer_ctx: &mut RendererContext) {
+    fn start(&mut self,
+        draw_ctx: &mut DrawContext,
+        renderer_ctx: &mut RendererContext,
+        server_ctx: &mut ServerContext
+    ) {
         let egui_renderer = &mut renderer_ctx.egui_renderer;
         egui_renderer.add_window(GameState::Menu, |ctx, screen_server| {
             egui::Window::new("Main Menu")

@@ -1,4 +1,4 @@
-use crate::screens::screen::Screen;
+use crate::{screens::screen::Screen, DrawContext, RendererContext, ServerContext};
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Hash, Debug)]
 pub enum GameState {
@@ -24,20 +24,33 @@ pub struct ScreenServer {
 }
 
 impl ScreenServer {
-    pub fn draw(&mut self) {
-        self.emit_event(Cycle::Draw);
-        self.emit_event(Cycle::Ui);
+    pub fn draw(&mut self,
+        draw_ctx: &mut DrawContext,
+        renderer_ctx: &mut RendererContext,
+        server_ctx: &mut ServerContext
+    ) {
+        self.emit_event(draw_ctx, renderer_ctx, server_ctx, Cycle::Draw);
+        self.emit_event(draw_ctx, renderer_ctx, server_ctx, Cycle::Ui);
     }
 
-    pub fn update(&mut self) {
-        self.emit_event(Cycle::Update);
+    pub fn update(&mut self,
+        draw_ctx: &mut DrawContext,
+        renderer_ctx: &mut RendererContext,
+        server_ctx: &mut ServerContext
+    ) {
+        self.emit_event(draw_ctx, renderer_ctx, server_ctx, Cycle::Update);
     }
 
     pub fn register_screen(&mut self, screen: impl Screen) {
         self.registered_screens.push(Box::new(screen));
     }
 
-    fn emit_event(&mut self, cycle: Cycle) {
+    fn emit_event(&mut self,
+        draw_ctx: &mut DrawContext,
+        renderer_ctx: &mut RendererContext,
+        server_ctx: &mut ServerContext,
+        cycle: Cycle
+    ) {
         self.registered_screens
             .iter_mut()
             .for_each(|screen| {
@@ -46,10 +59,17 @@ impl ScreenServer {
                 }
 
                 match cycle {
-                    Cycle::Start => screen.start(),
-                    Cycle::Update => screen.update(),
-                    Cycle::Ui => screen.ui(),
-                    Cycle::Draw => screen.draw(),
+                    Cycle::Start => screen.start(
+                        draw_ctx, renderer_ctx, server_ctx, self),
+
+                    Cycle::Update => screen.update(
+                        draw_ctx, renderer_ctx, server_ctx),
+
+                    Cycle::Ui => screen.ui(
+                        draw_ctx, renderer_ctx, server_ctx),
+
+                    Cycle::Draw => screen.draw(
+                        draw_ctx, renderer_ctx, server_ctx),
                 }
             });
     }

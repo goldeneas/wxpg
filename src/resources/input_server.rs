@@ -1,32 +1,18 @@
-use std::{collections::HashMap, default, fmt::Debug, hash::Hash};
+use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
 use winit::{event::ElementState, keyboard::KeyCode};
 
-pub trait Action: Debug + Eq + Hash + Send + Sync + Clone + Copy {}
+type Action = String;
 
-#[derive(Debug)]
-pub struct InputServer<T: Action> {
+#[derive(Debug, Default)]
+pub struct InputServer {
     mouse_delta: (f64, f64),
-    action_map: HashMap<T, KeyCode>,
+    action_map: HashMap<Action, KeyCode>,
     key_map: HashMap<KeyCode, ElementState>,
 }
 
-impl<T: Action> Default for InputServer<T> {
-    fn default() -> Self {
-        let action_map = HashMap::default();
-        let key_map = HashMap::default();
-        let mouse_delta = <(f64, f64)>::default();
-
-        Self {
-            action_map,
-            key_map,
-            mouse_delta,
-        }
-    }
-}
-
-impl<T: Action> InputServer<T> {
-    pub fn action(&self, action: T) -> bool {
+impl InputServer {
+    pub fn action(&self, action: Action) -> bool {
         let keycode = self.action_map.get(&action)
             .unwrap();
 
@@ -43,11 +29,11 @@ impl<T: Action> InputServer<T> {
         self.key_map.insert(keycode, state);
     }
 
-    pub fn register_action(&mut self, action: T, keycode: KeyCode) {
+    pub fn register_action(&mut self, action: Action, keycode: KeyCode) {
         self.action_map.insert(action, keycode);
     }
 
-    pub fn unregister_action(&mut self, action: T) {
+    pub fn unregister_action(&mut self, action: Action) {
         self.action_map.remove(&action);
     }
 }

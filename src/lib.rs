@@ -10,7 +10,6 @@ pub use bevy_ecs;
 pub use egui;
 pub use egui_wgpu;
 pub use egui_winit;
-use resources::input_server::Action;
 use resources::input_server::InputServer;
 use screens::screen::Screen;
 pub use wgpu;
@@ -139,24 +138,11 @@ impl RendererContext {
     }
 }
 
-pub struct ServerContext<T: Action> {
+#[derive(Default)]
+pub struct ServerContext {
     pub asset_server: AssetServer,
     pub screen_server: ScreenServer,
-    pub input_server: InputServer<T>
-}
-
-impl<T: Action> Default for ServerContext<T> {
-    fn default() -> Self {
-        let asset_server = AssetServer::default();
-        let screen_server = ScreenServer::default();
-        let input_server = InputServer::<T>::default();
-
-        Self {
-            asset_server,
-            screen_server,
-            input_server,
-        }
-    }
+    pub input_server: InputServer
 }
 
 pub struct InternalEngine {
@@ -196,9 +182,10 @@ impl InternalEngine {
         }
     }
 
-    fn redraw_requested<T: Action>(&mut self, server_ctx: &mut ServerContext<T>,
+    fn redraw_requested(&mut self,
+        server_ctx: &mut ServerContext,
         renderer_ctx: &mut RendererContext,
-        draw_ctx: &DrawContext
+        draw_ctx: &mut DrawContext
     ) {
         self.time_accumulator += self.delta_time
             .elapsed()
@@ -206,21 +193,26 @@ impl InternalEngine {
         self.delta_time = Instant::now();
 
         while self.time_accumulator >= self.update_dt {
-            self.update(server_ctx);
+            self.update(draw_ctx, renderer_ctx, server_ctx);
             self.time_accumulator -= self.update_dt;
         }
 
-        self.draw(server_ctx, renderer_ctx, draw_ctx);
+        self.draw(draw_ctx, renderer_ctx, server_ctx);
     }
 
-    fn update<T: Action>(&self, server_ctx: &mut ServerContext<T>) {
-        server_ctx.screen_server.update();
-    }
-
-    fn draw<T: Action>(&mut self,
-        server_ctx: &mut ServerContext<T>,
+    fn update(&self,
+        draw_ctx: &mut DrawContext,
         renderer_ctx: &mut RendererContext,
-        draw_ctx: &DrawContext
+        server_ctx: &mut ServerContext
+    ) {
+        server_ctx.screen_server
+            .update(draw_ctx, renderer_ctx, server_ctx);
+    }
+
+    fn draw(&mut self,
+        draw_ctx: &mut DrawContext,
+        renderer_ctx: &mut RendererContext,
+        server_ctx: &mut ServerContext
     ) {
         let mut frame_ctx = FrameContext::new(draw_ctx, None);
         let screen_server = &mut server_ctx.screen_server;
@@ -243,15 +235,15 @@ impl InternalEngine {
     }
 }
 
-pub struct Engine<T: Action> {
+pub struct Engine {
     engine_state: Option<InternalEngine>,
     draw_ctx: Option<DrawContext>,
     renderer_ctx: Option<RendererContext>,
-    server_ctx: Option<ServerContext<T>>,
+    server_ctx: Option<ServerContext>,
     screen: Box<dyn Screen>,
 }
 
-impl<T: Action> Engine<T> {
+impl Engine {
     fn new(screen: impl Screen + 'static) -> Self{
         let screen = Box::new(screen);
         let engine_state = Option::default();
@@ -269,7 +261,7 @@ impl<T: Action> Engine<T> {
     }
 }
 
-impl<T: Action> ApplicationHandler for Engine<T> {
+impl ApplicationHandler for Engine {
     fn window_event(
         &mut self,
         event_loop: &ActiveEventLoop,
@@ -334,7 +326,7 @@ impl<T: Action> ApplicationHandler for Engine<T> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let draw_ctx = pollster::block_on(DrawContext::new(event_loop));
         let renderer_ctx = RendererContext::new(&draw_ctx);
-        let server_ctx = ServerContext::<T>::default();
+        let server_ctx = ServerContext::default();
         let engine_state = InternalEngine::new();
 
         self.draw_ctx = Some(draw_ctx);
@@ -349,12 +341,12 @@ impl<T: Action> ApplicationHandler for Engine<T> {
     }
 }
 
-pub fn run<T: Action>(screen: impl Screen + 'static) {
+pub fn run(screen: impl Screen + 'static) {
     env_logger::init();
 
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Poll);
 
-    let mut engine = Engine::<T>::new(screen);
+    let mut engine = Engine::new(screen);
     let _ = event_loop.run_app(&mut engine);
 }
