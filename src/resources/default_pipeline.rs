@@ -4,7 +4,7 @@ use wgpu::{util::DeviceExt, PipelineCompilationOptions, RenderPipelineDescriptor
 
 use crate::{components::camera::CameraUniform, render::vertex::Vertex, InstanceRaw, Texture};
 
-#[derive(Resource)]
+#[derive(Debug)]
 pub struct DefaultPipeline {
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,

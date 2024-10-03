@@ -9,7 +9,7 @@ pub type ModelId = usize;
 pub type MeshId = usize;
 pub type MultiIndexedMeshId = usize;
 
-#[derive(Resource, Default)]
+#[derive(Default)]
 pub struct RenderStorage {
     meshes: Vec<Mesh>,
     multi_indexed_meshes: Vec<MultiIndexedMesh>,

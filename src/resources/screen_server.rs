@@ -1,4 +1,4 @@
-use crate::{screens::screen::Screen, DrawContext, RendererContext, ServerContext};
+use crate::{screens::screen::Screen, ScreenContext};
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Hash, Debug)]
 pub enum GameState {
@@ -19,67 +19,59 @@ enum Cycle {
 
 #[derive(Default)]
 pub struct ScreenServer {
-    state: GameState,
+    last_state: Option<GameState>,
     registered_screens: Vec<Box<dyn Screen>>,
 }
 
 impl ScreenServer {
-    pub fn draw(&mut self,
-        draw_ctx: &mut DrawContext,
-        renderer_ctx: &mut RendererContext,
-        server_ctx: &mut ServerContext
-    ) {
-        self.emit_event(draw_ctx, renderer_ctx, server_ctx, Cycle::Draw);
-        self.emit_event(draw_ctx, renderer_ctx, server_ctx, Cycle::Ui);
+    pub fn draw(&mut self, screen_ctx: &mut ScreenContext) {
+        if self.should_run_start_systems(screen_ctx) {
+            self.set_last_state(screen_ctx.state);
+            self.emit_event(screen_ctx, Cycle::Start);
+        }
+
+        self.emit_event(screen_ctx, Cycle::Draw);
+        self.emit_event(screen_ctx, Cycle::Ui);
     }
 
-    pub fn update(&mut self,
-        draw_ctx: &mut DrawContext,
-        renderer_ctx: &mut RendererContext,
-        server_ctx: &mut ServerContext
-    ) {
-        self.emit_event(draw_ctx, renderer_ctx, server_ctx, Cycle::Update);
+    pub fn update(&mut self, screen_ctx: &mut ScreenContext) {
+        if self.should_run_start_systems(screen_ctx) {
+            self.set_last_state(screen_ctx.state);
+            self.emit_event(screen_ctx, Cycle::Start);
+        }
+
+        self.emit_event(screen_ctx, Cycle::Update);
     }
 
     pub fn register_screen(&mut self, screen: impl Screen) {
         self.registered_screens.push(Box::new(screen));
     }
 
-    fn emit_event(&mut self,
-        draw_ctx: &mut DrawContext,
-        renderer_ctx: &mut RendererContext,
-        server_ctx: &mut ServerContext,
-        cycle: Cycle
-    ) {
+    fn emit_event(&mut self, screen_ctx: &mut ScreenContext, cycle: Cycle) {
         self.registered_screens
             .iter_mut()
             .for_each(|screen| {
-                if screen.game_state() != self.state {
+                if screen.game_state() != self.last_state.unwrap() {
                     return;
                 }
 
                 match cycle {
-                    Cycle::Start => screen.start(
-                        draw_ctx, renderer_ctx, server_ctx, self),
-
-                    Cycle::Update => screen.update(
-                        draw_ctx, renderer_ctx, server_ctx),
-
-                    Cycle::Ui => screen.ui(
-                        draw_ctx, renderer_ctx, server_ctx),
-
-                    Cycle::Draw => screen.draw(
-                        draw_ctx, renderer_ctx, server_ctx),
+                    Cycle::Start => screen.start(screen_ctx),
+                    Cycle::Draw => screen.draw(screen_ctx),
+                    Cycle::Update => screen.update(screen_ctx),
+                    Cycle::Ui => screen.ui(screen_ctx),
                 }
             });
     }
 
-    pub fn set_state(&mut self, state: GameState) {
-        self.state = state;
-        self.emit_event(Cycle::Start);
+    fn set_last_state(&mut self, state: GameState) {
+        self.last_state = Some(state);
     }
 
-    pub fn state(&self) -> GameState {
-        self.state
+    fn should_run_start_systems(&self, screen_ctx: &ScreenContext) -> bool {
+        match self.last_state {
+            Some(last_state) => last_state != screen_ctx.state,
+            None => true
+        }
     }
 }

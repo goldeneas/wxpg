@@ -7,14 +7,10 @@ pub struct FrameContext {
 }
 
 impl FrameContext {
-    pub fn new(draw_ctx: &DrawContext,
-        vec_capacity: Option<usize>
-    ) -> Self {
+    pub fn new(draw_ctx: &DrawContext) -> Self {
         let output = draw_ctx.surface.get_current_texture().unwrap();
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        let capacity = vec_capacity.unwrap_or(3);
-        let encoders = Vec::with_capacity(capacity);
+        let encoders = Vec::new();
 
         Self {
             output,

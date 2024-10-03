@@ -8,7 +8,7 @@ pub trait Asset {
     fn file_name(&self) -> &str;
 }
 
-#[derive(Default, Resource)]
+#[derive(Default)]
 pub struct AssetServer {
     map: HashMap<(TypeId, u64), Arc<dyn Any + Send + Sync>>,
 }

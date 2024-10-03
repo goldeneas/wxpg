@@ -7,7 +7,6 @@ use crate::{resources::frame_context::FrameContext, DrawContext};
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub struct LabelId(u32);
 
-#[derive(Resource)]
 pub struct GlyphonRenderer {
     font_system: FontSystem,
     swash_cache: SwashCache,
