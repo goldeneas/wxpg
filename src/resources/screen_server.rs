@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use log::debug;
+
 use crate::{screens::screen::Screen, EngineInternal};
 
 use super::commands::Commands;
@@ -24,7 +28,7 @@ pub struct ScreenServer {
     commands: Commands,
     state: Option<GameState>,
     next_state: Option<GameState>,
-    registered_screens: Vec<Box<dyn Screen>>,
+    registered_screens: HashMap<GameState, Vec<Box<dyn Screen>>>,
 }
 
 impl ScreenServer {
@@ -58,18 +62,32 @@ impl ScreenServer {
         self.emit_event(Cycle::Update);
     }
 
-    pub fn register_screen(&mut self, screen: impl Screen) {
-        self.registered_screens.push(Box::new(screen));
+    pub fn register_screen(&mut self, state: GameState, screen: impl Screen) {
+        let screen = Box::new(screen);
+
+        match self.registered_screens.get_mut(&state) {
+            Some(vec) => vec.push(screen),
+            None => {
+                let vec: Vec<Box<dyn Screen>> = vec![screen];
+                self.registered_screens.insert(state, vec);
+            }
+        }
+
     }
 
     fn emit_event(&mut self, cycle: Cycle) {
-        self.registered_screens
-            .iter_mut()
-            .for_each(|screen| {
-                if screen.game_state() != self.state.unwrap() {
-                    return;
-                }
+        let state = self.state.unwrap();
+        let screens_opt = self.registered_screens
+            .get_mut(&state);
 
+        if screens_opt.is_none() {
+            debug!("Game state has no screens registered.");
+            return;
+        }
+
+        let screens = screens_opt.unwrap();
+        screens.iter_mut()
+            .for_each(|screen| {
                 let commands = &mut self.commands;
                 match cycle {
                     Cycle::Start => screen.start(commands),
