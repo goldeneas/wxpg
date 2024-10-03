@@ -1,4 +1,6 @@
-use crate::{screens::screen::Screen, ScreenContext};
+use crate::{screens::screen::Screen, EngineInternal};
+
+use super::commands::Commands;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Hash, Debug)]
 pub enum GameState {
@@ -19,59 +21,79 @@ enum Cycle {
 
 #[derive(Default)]
 pub struct ScreenServer {
-    last_state: Option<GameState>,
+    commands: Commands,
+    state: Option<GameState>,
+    next_state: Option<GameState>,
     registered_screens: Vec<Box<dyn Screen>>,
 }
 
 impl ScreenServer {
-    pub fn draw(&mut self, screen_ctx: &mut ScreenContext) {
-        if self.should_run_start_systems(screen_ctx) {
-            self.set_last_state(screen_ctx.state);
-            self.emit_event(screen_ctx, Cycle::Start);
-        }
+    pub fn execute_commands(&mut self, engine_internal: &mut EngineInternal) {
+        let new_state = self.commands.new_state();
+        self.state = new_state;
 
-        self.emit_event(screen_ctx, Cycle::Draw);
-        self.emit_event(screen_ctx, Cycle::Ui);
+        self.commands.funcs()
+            .iter()
+            .for_each(|func| { func(engine_internal); });
+
+        self.commands = Commands::default();
     }
 
-    pub fn update(&mut self, screen_ctx: &mut ScreenContext) {
-        if self.should_run_start_systems(screen_ctx) {
-            self.set_last_state(screen_ctx.state);
-            self.emit_event(screen_ctx, Cycle::Start);
+    pub fn draw(&mut self) {
+        if self.should_state_change() {
+            self.update_state();
+            self.emit_event(Cycle::Start);
         }
 
-        self.emit_event(screen_ctx, Cycle::Update);
+        self.emit_event(Cycle::Draw);
+        self.emit_event(Cycle::Ui);
+    }
+
+    pub fn update(&mut self) {
+        if self.should_state_change() {
+            self.update_state();
+            self.emit_event(Cycle::Start);
+        }
+
+        self.emit_event(Cycle::Update);
     }
 
     pub fn register_screen(&mut self, screen: impl Screen) {
         self.registered_screens.push(Box::new(screen));
     }
 
-    fn emit_event(&mut self, screen_ctx: &mut ScreenContext, cycle: Cycle) {
+    fn emit_event(&mut self, cycle: Cycle) {
         self.registered_screens
             .iter_mut()
             .for_each(|screen| {
-                if screen.game_state() != self.last_state.unwrap() {
+                if screen.game_state() != self.state.unwrap() {
                     return;
                 }
 
+                let commands = &mut self.commands;
                 match cycle {
-                    Cycle::Start => screen.start(screen_ctx),
-                    Cycle::Draw => screen.draw(screen_ctx),
-                    Cycle::Update => screen.update(screen_ctx),
-                    Cycle::Ui => screen.ui(screen_ctx),
+                    Cycle::Start => screen.start(commands),
+                    Cycle::Draw => screen.draw(commands),
+                    Cycle::Update => screen.update(commands),
+                    Cycle::Ui => screen.ui(commands),
                 }
             });
     }
 
-    fn set_last_state(&mut self, state: GameState) {
-        self.last_state = Some(state);
+    pub fn commands(&mut self) -> &mut Commands {
+        &mut self.commands
     }
 
-    fn should_run_start_systems(&self, screen_ctx: &ScreenContext) -> bool {
-        match self.last_state {
-            Some(last_state) => last_state != screen_ctx.state,
-            None => true
-        }
+    pub fn state(&self) -> Option<GameState> {
+        self.state
+    }
+
+    fn update_state(&mut self) {
+        self.state = self.next_state;
+        self.next_state = None;
+    }
+
+    fn should_state_change(&self) -> bool {
+        self.next_state.is_some()
     }
 }

@@ -1,11 +1,11 @@
-use crate::{resources::screen_server::{GameState, ScreenContext, ScreenServer}, DrawContext, RendererContext, ServerContext};
+use crate::resources::{commands::Commands, screen_server::GameState};
 
 #[allow(unused_variables)]
 pub trait Screen where Self: 'static {
     fn game_state(&self) -> GameState;
 
-    fn start(&mut self, screen_ctx: &mut ScreenContext) {}
-    fn ui(&mut self, screen_ctx: &mut ScreenContext) {}
-    fn draw(&mut self, screen_ctx: &mut ScreenContext) {}
-    fn update(&mut self, screen_ctx: &mut ScreenContext) {}
+    fn start(&mut self, commands: &mut Commands) {}
+    fn ui(&mut self, commands: &mut Commands) {}
+    fn draw(&mut self, commands: &mut Commands) {}
+    fn update(&mut self, commands: &mut Commands) {}
 }

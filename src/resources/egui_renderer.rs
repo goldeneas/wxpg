@@ -6,11 +6,11 @@ use egui_winit::winit::event::WindowEvent;
 use wgpu::CommandEncoderDescriptor;
 use winit::window::Window;
 
-use crate::{resources::frame_context::FrameContext, screens::game, ScreenContext};
+use crate::resources::frame_context::FrameContext;
 
-use super::screen_server::GameState;
+use super::{commands::Commands, screen_server::{self, GameState, ScreenServer}};
 
-type ScreenCallback = dyn Fn(&Context, &mut GameState) + Send + Sync;
+type ScreenCallback = dyn Fn(&Context, &mut Commands);
 
 pub struct EguiRenderer {
     state: egui_winit::State,
@@ -54,22 +54,23 @@ impl EguiRenderer {
     // TODO return a en EguiWindowId to let user manage visibility of window
     pub fn add_window(&mut self,
         required_state: GameState,
-        func: impl Fn(&Context, &mut GameState) + Send + Sync + 'static
+        func: impl Fn(&Context, &mut Commands) + 'static
     ) {
         let func = Box::new(func);
         self.window_funcs.insert(required_state, func);
     }
 
     pub fn draw(&mut self,
-        screen_ctx: &mut ScreenContext,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        config: &wgpu::SurfaceConfiguration,
+        window: &Window,
+        screen_server: &mut ScreenServer,
         frame_ctx: &mut FrameContext,
     ) {
-        let draw_ctx = &screen_ctx.draw_ctx;
-
-        let device = &draw_ctx.device;
-        let queue = &draw_ctx.queue;
-        let config = &draw_ctx.config;
-        let window = &draw_ctx.window;
+        if screen_server.state().is_none() {
+            return;
+        }
 
         let view = &frame_ctx.view;
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
@@ -81,17 +82,18 @@ impl EguiRenderer {
 
         // TODO: add egui_plot
 
-        let game_state = &mut screen_ctx.state;
+        let game_state = screen_server.state().unwrap();
+        let commands = screen_server.commands();
 
         context.begin_pass(input);
         self.window_funcs
             .iter()
             .for_each(|(required_state, func)| {
-                if required_state != game_state {
+                if game_state != *required_state {
                     return;
-                }
+                } 
 
-                func(context, game_state);
+                func(context, commands);
             });
         let output = context.end_pass();
 

@@ -1,5 +1,3 @@
-use crate::DrawContext;
-
 pub struct FrameContext {
     pub output: wgpu::SurfaceTexture,
     pub view: wgpu::TextureView,
@@ -7,8 +5,8 @@ pub struct FrameContext {
 }
 
 impl FrameContext {
-    pub fn new(draw_ctx: &DrawContext) -> Self {
-        let output = draw_ctx.surface.get_current_texture().unwrap();
+    pub fn new(surface: &wgpu::Surface) -> Self {
+        let output = surface.get_current_texture().unwrap();
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
         let encoders = Vec::new();
 
