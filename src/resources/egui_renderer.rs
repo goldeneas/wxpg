@@ -68,10 +68,6 @@ impl EguiRenderer {
         screen_server: &mut ScreenServer,
         frame_ctx: &mut FrameContext,
     ) {
-        if screen_server.state().is_none() {
-            return;
-        }
-
         let view = &frame_ctx.view;
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
             label: Some("Egui Encoder"),
@@ -82,7 +78,7 @@ impl EguiRenderer {
 
         // TODO: add egui_plot
 
-        let game_state = screen_server.state().unwrap();
+        let game_state = screen_server.state();
         let commands = screen_server.commands();
 
         context.begin_pass(input);

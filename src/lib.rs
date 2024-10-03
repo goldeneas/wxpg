@@ -11,7 +11,7 @@ pub use egui;
 pub use egui_wgpu;
 pub use egui_winit;
 use resources::input_server::InputServer;
-use resources::screen_server;
+use resources::screen_server::GameState;
 use screens::screen::Screen;
 pub use wgpu;
 use winit::dpi::PhysicalSize;
@@ -41,7 +41,6 @@ use winit::{
 };
 
 pub struct EngineInternal {
-    screen_server: ScreenServer,
     asset_server: AssetServer,
     input_server: InputServer,
 
@@ -119,7 +118,6 @@ impl EngineInternal {
 
         let asset_server = AssetServer::default();
         let input_server = InputServer::default();
-        let screen_server = ScreenServer::default();
 
         Self {
             window,
@@ -133,7 +131,6 @@ impl EngineInternal {
             render_storage,
             glyphon_renderer,
             default_pipeline,
-            screen_server,
             asset_server,
             input_server,
             world,
@@ -147,15 +144,15 @@ pub struct Engine {
     update_dt: f32,
 
     engine_internal: Option<EngineInternal>,
-    screen_server: Option<ScreenServer>,
-    screen: Box<dyn Screen>,
+    screen_server: ScreenServer,
 }
 
 impl Engine {
-    fn new(screen: impl Screen + 'static) -> Self{
-        let screen = Box::new(screen);
+    fn new(screen: impl Screen ) -> Self{
         let engine_internal = Option::default();
-        let screen_server = Option::default();
+
+        let mut screen_server = ScreenServer::default();
+        screen_server.register_screen(GameState::default(), screen);
 
         let delta_time = Instant::now();
         let time_accumulator = f32::default();
@@ -165,7 +162,6 @@ impl Engine {
             delta_time,
             time_accumulator,
             update_dt,
-            screen,
             engine_internal,
             screen_server,
         }
@@ -194,7 +190,7 @@ impl ApplicationHandler for Engine {
                 self.resize(physical_size);
             },
             WindowEvent::RedrawRequested => {
-                let screen_server = &mut self.screen_server.as_mut().unwrap();
+                let screen_server = &mut self.screen_server;
                 screen_server.execute_commands(engine_internal);
                 self.redraw_requested();
             },
@@ -256,12 +252,11 @@ impl Engine {
     }
 
     fn update(&mut self) {
-        let screen_server = self.screen_server.as_mut().unwrap();
-        screen_server.update();
+        self.screen_server.update();
     }
 
     fn draw(&mut self) {
-        let screen_server = self.screen_server.as_mut().unwrap();
+        let screen_server = &mut self.screen_server;
         let engine_internal = self.engine_internal.as_mut().unwrap();
         screen_server.draw();
 

@@ -1,19 +1,14 @@
-use wxpg::{app::{App, AppConfig}, run};
+use wxpg::{resources::{commands::{self, Commands}, screen_server}, run, screens::screen::Screen};
 
 #[derive(Default)]
-struct AppExample {}
-
-impl App for AppExample {
-    fn config(&self) -> AppConfig {
-        AppConfig {
-            update_dt: 1.0/20.0,
-            cursor_locked: false,
-            cursor_visible: false,
-        }
+pub struct TestScreen {}
+impl Screen for TestScreen {
+    fn start(&mut self, commands: &mut Commands) {
+        println!("HI");
     }
 }
 
 fn main() {
-    let app = AppExample::default();
-    run(app);
+    let screen = TestScreen::default();
+    wxpg::run(screen);
 }

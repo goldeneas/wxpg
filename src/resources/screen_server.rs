@@ -13,7 +13,7 @@ pub enum GameState {
     Game,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum Cycle {
     Start,
     Ui,
@@ -23,18 +23,34 @@ enum Cycle {
 
 // TODO make this generic like Action
 
-#[derive(Default)]
 pub struct ScreenServer {
     commands: Commands,
-    state: Option<GameState>,
+    state: GameState,
     next_state: Option<GameState>,
     registered_screens: HashMap<GameState, Vec<Box<dyn Screen>>>,
 }
 
+impl Default for ScreenServer {
+    fn default() -> Self {
+        let next_state = Some(GameState::default());
+        let commands = Commands::default();
+        let state = GameState::default();
+        let registered_screens = HashMap::default();
+
+        Self {
+            next_state,
+            commands,
+            state,
+            registered_screens,
+        }
+    }
+}
+
 impl ScreenServer {
     pub fn execute_commands(&mut self, engine_internal: &mut EngineInternal) {
-        let new_state = self.commands.new_state();
-        self.state = new_state;
+        if let Some(new_state) = self.commands.new_state() {
+            self.state = new_state;
+        }
 
         self.commands.funcs()
             .iter()
@@ -76,9 +92,8 @@ impl ScreenServer {
     }
 
     fn emit_event(&mut self, cycle: Cycle) {
-        let state = self.state.unwrap();
         let screens_opt = self.registered_screens
-            .get_mut(&state);
+            .get_mut(&self.state);
 
         if screens_opt.is_none() {
             debug!("Game state has no screens registered.");
@@ -102,12 +117,12 @@ impl ScreenServer {
         &mut self.commands
     }
 
-    pub fn state(&self) -> Option<GameState> {
+    pub fn state(&self) -> GameState {
         self.state
     }
 
     fn update_state(&mut self) {
-        self.state = self.next_state;
+        self.state = self.next_state.unwrap();
         self.next_state = None;
     }
 
