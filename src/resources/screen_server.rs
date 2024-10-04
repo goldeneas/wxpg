@@ -63,7 +63,7 @@ impl ScreenServer {
         self.emit_event(Cycle::Update, engine_internal);
     }
 
-    pub fn register_screen(&mut self, state: GameState, screen: impl Screen) {
+    pub fn register_screen(&mut self, screen: impl Screen, state: GameState) {
         let screen = Box::new(screen);
 
         match self.registered_screens.get_mut(&state) {

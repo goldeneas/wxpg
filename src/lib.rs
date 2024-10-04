@@ -7,6 +7,7 @@ pub mod pass_ext;
 pub mod device_ext;
 pub mod app;
 
+use app::App;
 pub use bevy_ecs;
 pub use egui;
 pub use egui_wgpu;
@@ -149,11 +150,10 @@ pub struct Engine {
 }
 
 impl Engine {
-    fn new(screen: impl Screen ) -> Self{
+    fn new(app: &mut impl App) -> Self{
         let engine_internal = Option::default();
-
         let mut screen_server = ScreenServer::default();
-        screen_server.register_screen(GameState::default(), screen);
+        app.start(&mut screen_server);
 
         let delta_time = Instant::now();
         let time_accumulator = f32::default();
@@ -301,12 +301,12 @@ impl Engine {
     }
 }
 
-pub fn run(screen: impl Screen + 'static) {
+pub fn run(app: &mut impl App) {
     env_logger::init();
 
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Poll);
 
-    let mut engine = Engine::new(screen);
+    let mut engine = Engine::new(app);
     let _ = event_loop.run_app(&mut engine);
 }

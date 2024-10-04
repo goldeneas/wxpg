@@ -1,11 +1,11 @@
 use winit::keyboard::KeyCode;
-use wxpg::{resources::commands::Commands, run, screens::screen::Screen};
+use wxpg::{app::App, resources::{commands::Commands, screen_server::{GameState, ScreenServer}}, run, screens::screen::Screen};
 
 #[derive(Default)]
 pub struct TestScreen {}
 impl Screen for TestScreen {
     fn start(&mut self, commands: &mut Commands) {
-        println!("HI");
+        println!("HI2");
     }
 
     fn update(&mut self, commands: &mut Commands) {
@@ -13,7 +13,16 @@ impl Screen for TestScreen {
     }
 }
 
+#[derive(Default)]
+pub struct AppTest {}
+impl App for AppTest {
+    fn start(&mut self, screen_server: &mut ScreenServer) {
+        let test = TestScreen::default();
+        screen_server.register_screen(test, GameState::Menu);
+    }
+}
+
 fn main() {
-    let screen = TestScreen::default();
-    wxpg::run(screen);
+    let mut app = AppTest::default();
+    wxpg::run(&mut app);
 }
