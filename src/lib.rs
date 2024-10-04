@@ -41,23 +41,23 @@ use winit::{
 };
 
 pub struct EngineInternal {
-    asset_server: AssetServer,
-    input_server: InputServer,
+    pub asset_server: AssetServer,
+    pub input_server: InputServer,
 
-    glyphon_renderer: GlyphonRenderer,
-    egui_renderer: EguiRenderer,
+    pub glyphon_renderer: GlyphonRenderer,
+    pub egui_renderer: EguiRenderer,
 
-    world: World,
+    pub world: World,
 
-    window: Arc<Window>,
-    depth_texture: Arc<Texture>,
-    device: wgpu::Device,
-    surface: wgpu::Surface<'static>,
-    config: wgpu::SurfaceConfiguration,
-    queue: wgpu::Queue,
-    window_size: PhysicalSize<u32>,
-    render_storage: RenderStorage,
-    default_pipeline: DefaultPipeline,
+    pub window: Arc<Window>,
+    pub depth_texture: Arc<Texture>,
+    pub device: wgpu::Device,
+    pub surface: wgpu::Surface<'static>,
+    pub config: wgpu::SurfaceConfiguration,
+    pub queue: wgpu::Queue,
+    pub window_size: PhysicalSize<u32>,
+    pub render_storage: RenderStorage,
+    pub default_pipeline: DefaultPipeline,
 }
 
 impl EngineInternal {
@@ -190,8 +190,6 @@ impl ApplicationHandler for Engine {
                 self.resize(physical_size);
             },
             WindowEvent::RedrawRequested => {
-                let screen_server = &mut self.screen_server;
-                screen_server.execute_commands(engine_internal);
                 self.redraw_requested();
             },
             WindowEvent::KeyboardInput {
@@ -252,13 +250,14 @@ impl Engine {
     }
 
     fn update(&mut self) {
-        self.screen_server.update();
+        let engine_internal = self.engine_internal.as_mut().unwrap();
+        self.screen_server.update(engine_internal);
     }
 
     fn draw(&mut self) {
         let screen_server = &mut self.screen_server;
         let engine_internal = self.engine_internal.as_mut().unwrap();
-        screen_server.draw();
+        screen_server.draw(engine_internal);
 
         let device = &engine_internal.device;
         let config = &engine_internal.config;

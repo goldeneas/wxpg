@@ -8,9 +8,9 @@ use winit::window::Window;
 
 use crate::resources::frame_context::FrameContext;
 
-use super::{commands::Commands, screen_server::{self, GameState, ScreenServer}};
+use super::{commands::Commands, screen_server::{GameState, ScreenServer}};
 
-type ScreenCallback = dyn Fn(&Context, &mut Commands);
+type ScreenCallback = dyn Fn(&Context);
 
 pub struct EguiRenderer {
     state: egui_winit::State,
@@ -54,7 +54,7 @@ impl EguiRenderer {
     // TODO return a en EguiWindowId to let user manage visibility of window
     pub fn add_window(&mut self,
         required_state: GameState,
-        func: impl Fn(&Context, &mut Commands) + 'static
+        func: impl Fn(&Context) + 'static
     ) {
         let func = Box::new(func);
         self.window_funcs.insert(required_state, func);
@@ -79,7 +79,6 @@ impl EguiRenderer {
         // TODO: add egui_plot
 
         let game_state = screen_server.state();
-        let commands = screen_server.commands();
 
         context.begin_pass(input);
         self.window_funcs
@@ -89,7 +88,7 @@ impl EguiRenderer {
                     return;
                 } 
 
-                func(context, commands);
+                func(context);
             });
         let output = context.end_pass();
 

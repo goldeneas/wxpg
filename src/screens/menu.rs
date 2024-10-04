@@ -11,13 +11,13 @@ pub struct MenuScreen {}
 
 impl Screen for MenuScreen {
     fn start(&mut self, commands: &mut Commands) {
-        commands.add(|engine| { spawn_egui(engine); });
+        spawn_egui(&mut commands.engine_internal);
     }
 }
 
 fn spawn_egui(engine_internal: &mut EngineInternal) {
     let egui_renderer = &mut engine_internal.egui_renderer;
-    egui_renderer.add_window(GameState::Menu, |ctx, commands| {
+    egui_renderer.add_window(GameState::Menu, |ctx| {
         egui::Window::new("Main Menu")
             .default_open(true)
             .default_size([200.0, 85.0])

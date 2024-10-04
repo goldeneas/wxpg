@@ -1,8 +1,9 @@
-use std::{collections::HashMap, fmt::Debug, hash::Hash};
+use std::collections::HashMap;
 
 use winit::{event::ElementState, keyboard::KeyCode};
 
-type Action = String;
+// TODO: is this static fine?
+type Action = &'static str;
 
 #[derive(Debug, Default)]
 pub struct InputServer {
@@ -16,9 +17,10 @@ impl InputServer {
         let keycode = self.action_map.get(&action)
             .unwrap();
 
-        self.key_map.get(&keycode)
-            .unwrap()
-            .is_pressed()
+        match self.key_map.get(&keycode) {
+            None => false,
+            Some(state) => state.is_pressed()
+        }
     }
 
     pub fn mouse_delta(&mut self, delta: (f64, f64)) {

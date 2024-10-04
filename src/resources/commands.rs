@@ -4,24 +4,19 @@ use super::screen_server::GameState;
 
 type Command = dyn Fn(&mut EngineInternal);
 
-#[derive(Default)]
-pub struct Commands {
-    new_state: Option<GameState>,
-    commands: Vec<Box<Command>>,
+pub struct Commands<'a> {
+    pub new_state: Option<GameState>,
+    pub engine_internal: &'a mut EngineInternal,
 }
 
-impl Commands {
-    pub fn add(&mut self, func: impl Fn(&mut EngineInternal) + 'static) {
-        let func = Box::new(func);
-        self.commands.push(func);
-    }
-
-    pub fn funcs(&self) -> &Vec<Box<Command>> {
-        &self.commands
-    }
-
-    pub fn clear_funcs(&mut self) {
-        self.commands.clear();
+impl<'a> Commands<'a> {
+    pub fn new(engine_internal: &'a mut EngineInternal) -> Self {
+        let new_state = Option::default();
+        
+        Self {
+            new_state,
+            engine_internal,
+        }
     }
 
     pub fn new_state(&self) -> Option<GameState> {
