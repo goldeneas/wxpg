@@ -8,7 +8,7 @@ use winit::window::Window;
 
 use crate::resources::frame_context::FrameContext;
 
-use super::{commands::Commands, screen_server::{GameState, ScreenServer}};
+use super::screen_server::{GameState, ScreenServer};
 
 type ScreenCallback = dyn Fn(&Context);
 

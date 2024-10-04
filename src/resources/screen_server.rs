@@ -14,7 +14,7 @@ pub enum GameState {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum EngineCycle {
+enum Cycle {
     Start,
     Ui,
     Draw,
@@ -47,20 +47,20 @@ impl ScreenServer {
     pub fn draw(&mut self, engine_internal: &mut EngineInternal) {
         if self.should_state_change() {
             self.update_state();
-            self.emit_event(EngineCycle::Start, engine_internal);
+            self.emit_event(Cycle::Start, engine_internal);
         }
 
-        self.emit_event(EngineCycle::Draw, engine_internal);
-        self.emit_event(EngineCycle::Ui, engine_internal);
+        self.emit_event(Cycle::Draw, engine_internal);
+        self.emit_event(Cycle::Ui, engine_internal);
     }
 
     pub fn update(&mut self, engine_internal: &mut EngineInternal) {
         if self.should_state_change() {
             self.update_state();
-            self.emit_event(EngineCycle::Start, engine_internal);
+            self.emit_event(Cycle::Start, engine_internal);
         }
 
-        self.emit_event(EngineCycle::Update, engine_internal);
+        self.emit_event(Cycle::Update, engine_internal);
     }
 
     pub fn register_screen(&mut self, state: GameState, screen: impl Screen) {
@@ -77,7 +77,7 @@ impl ScreenServer {
     }
 
     fn emit_event(&mut self,
-        cycle: EngineCycle,
+        cycle: Cycle,
         engine_internal: &mut EngineInternal
     ) {
         let screens_opt = self.registered_screens
@@ -94,10 +94,10 @@ impl ScreenServer {
         screens.iter_mut()
             .for_each(|screen| {
                 match cycle {
-                    EngineCycle::Start => screen.start(&mut commands),
-                    EngineCycle::Draw => screen.draw(&mut commands),
-                    EngineCycle::Update => screen.update(&mut commands),
-                    EngineCycle::Ui => screen.ui(&mut commands),
+                    Cycle::Start => screen.start(&mut commands),
+                    Cycle::Draw => screen.draw(&mut commands),
+                    Cycle::Update => screen.update(&mut commands),
+                    Cycle::Ui => screen.ui(&mut commands),
                 }
             });
 

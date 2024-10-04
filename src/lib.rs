@@ -5,6 +5,7 @@ pub mod resources;
 pub mod screens;
 pub mod pass_ext;
 pub mod device_ext;
+pub mod app;
 
 pub use bevy_ecs;
 pub use egui;
