@@ -2,7 +2,7 @@ use std::process::exit;
 
 use egui::{Align2, Button};
 
-use crate::{app::App, modules::{commands::Commands, egui_renderer::EguiWindow, screen_server::{GameState, ScreenServer}}, run, screens::screen::Screen};
+use wxpg::{app::App, modules::{commands::Commands, egui_renderer::EguiWindow, screen_server::{GameState, ScreenServer}}, run, screens::screen::Screen};
 
 #[derive(Default)]
 pub struct TestWindow {}
@@ -34,6 +34,9 @@ pub struct TestScreen {}
 impl Screen for TestScreen {
     fn start(&mut self, commands: &mut Commands) {
         println!("HI2");
+        let window = TestWindow::default();
+        commands.engine_internal.egui_renderer
+            .register_window(GameState::Menu, window);
     }
 
     fn update(&mut self, commands: &mut Commands) {
@@ -50,7 +53,6 @@ impl App for AppTest {
     }
 }
 
-#[test]
 fn main() {
     let mut app = AppTest::default();
     run(&mut app);

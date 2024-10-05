@@ -54,7 +54,7 @@ impl EguiRenderer {
     }
 
     // TODO return a en EguiWindowId to let user manage visibility of window
-    pub fn add_window(&mut self,
+    pub fn register_window(&mut self,
         required_state: GameState,
         window: impl EguiWindow + 'static
     ) {

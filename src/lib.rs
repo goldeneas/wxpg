@@ -6,7 +6,6 @@ pub mod screens;
 pub mod pass_ext;
 pub mod device_ext;
 pub mod app;
-pub mod tests;
 
 use app::App;
 pub use bevy_ecs;
