@@ -2,8 +2,6 @@ use crate::EngineInternal;
 
 use super::screen_server::GameState;
 
-type Command = dyn Fn(&mut EngineInternal);
-
 pub struct Commands<'a> {
     pub new_state: Option<GameState>,
     pub engine_internal: &'a mut EngineInternal,

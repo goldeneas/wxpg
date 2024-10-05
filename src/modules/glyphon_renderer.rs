@@ -1,7 +1,7 @@
 use glyphon::{Attrs, Buffer, Cache, Color, FontSystem, Metrics, Resolution, Shaping, SwashCache, TextArea, TextAtlas, TextBounds, TextRenderer, Viewport};
 use wgpu::{CommandEncoderDescriptor, Device, MultisampleState, Queue};
 
-use crate::resources::frame_context::FrameContext;
+use crate::modules::frame_context::FrameContext;
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub struct LabelId(u32);

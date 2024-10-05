@@ -1,4 +1,33 @@
-use crate::{app::App, modules::{commands::Commands, screen_server::{GameState, ScreenServer}}, screens::screen::Screen};
+use std::process::exit;
+
+use egui::{Align2, Button};
+
+use crate::{app::App, modules::{commands::Commands, egui_renderer::EguiWindow, screen_server::{GameState, ScreenServer}}, run, screens::screen::Screen};
+
+#[derive(Default)]
+pub struct TestWindow {}
+impl EguiWindow for TestWindow {
+    fn ui(&mut self, ctx: &egui::Context) {
+        egui::Window::new("Main Menu")
+            .default_open(true)
+            .default_size([200.0, 85.0])
+            .resizable(false)
+            .collapsible(false)
+            .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                if ui.add_sized([200.0, 30.0], Button::new("Play")).clicked() {
+                    //commands.sta;
+                }
+        
+                if ui.add_sized([200.0, 30.0], Button::new("Quit")).clicked() {
+                    exit(0);
+                }
+        
+                ui.end_row();
+                ui.allocate_space(ui.available_size());
+            });
+    }
+}
 
 #[derive(Default)]
 pub struct TestScreen {}
@@ -21,7 +50,8 @@ impl App for AppTest {
     }
 }
 
+#[test]
 fn main() {
     let mut app = AppTest::default();
-    wxpg::run(&mut app);
+    run(&mut app);
 }

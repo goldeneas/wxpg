@@ -10,16 +10,14 @@ use crate::modules::frame_context::FrameContext;
 
 use super::screen_server::{GameState, ScreenServer};
 
-type ScreenCallback = dyn Fn(&Context);
-
 pub trait EguiWindow {
-    fn draw(&mut self);
+    fn ui(&mut self, ctx: &Context);
 }
 
 pub struct EguiRenderer {
     state: egui_winit::State,
     renderer: egui_wgpu::Renderer,
-    window_funcs: HashMap<GameState, Box<ScreenCallback>>,
+    window_map: HashMap<GameState, Box<dyn EguiWindow>>,
 }
 
 impl EguiRenderer {
@@ -42,12 +40,12 @@ impl EguiRenderer {
             false
         );
 
-        let window_funcs = HashMap::new();
+        let window_map = HashMap::new();
 
         Self {
             state,
             renderer,
-            window_funcs,
+            window_map,
         }
     }
 
@@ -58,10 +56,10 @@ impl EguiRenderer {
     // TODO return a en EguiWindowId to let user manage visibility of window
     pub fn add_window(&mut self,
         required_state: GameState,
-        func: impl Fn(&Context) + 'static
+        window: impl EguiWindow + 'static
     ) {
-        let func = Box::new(func);
-        self.window_funcs.insert(required_state, func);
+        let func = Box::new(window);
+        self.window_map.insert(required_state, func);
     }
 
     pub fn draw(&mut self,
@@ -85,14 +83,14 @@ impl EguiRenderer {
         let game_state = screen_server.state();
 
         context.begin_pass(input);
-        self.window_funcs
-            .iter()
-            .for_each(|(required_state, func)| {
+        self.window_map
+            .iter_mut()
+            .for_each(|(required_state, window)| {
                 if game_state != *required_state {
                     return;
                 } 
 
-                func(context);
+                window.ui(context);
             });
         let output = context.end_pass();
 
