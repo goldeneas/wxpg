@@ -2,7 +2,7 @@ use std::process::exit;
 
 use egui::{Align2, Button};
 
-use crate::{resources::{commands::Commands, screen_server::GameState}, EngineInternal};
+use crate::{modules::{commands::Commands, screen_server::GameState}, EngineInternal};
 
 use super::screen::Screen;
 

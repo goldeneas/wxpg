@@ -1,6 +1,6 @@
 use wgpu::util::DrawIndexedIndirectArgs;
 
-use crate::{device_ext::VoxDeviceExt, resources::render_server::{MaterialId, ModelId, MultiIndexedMeshId}, InstanceData};
+use crate::{device_ext::VoxDeviceExt, modules::render_server::{MaterialId, ModelId, MultiIndexedMeshId}, InstanceData};
 
 use super::vertex::{Index, Vertex};
 

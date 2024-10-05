@@ -6,11 +6,15 @@ use egui_winit::winit::event::WindowEvent;
 use wgpu::CommandEncoderDescriptor;
 use winit::window::Window;
 
-use crate::resources::frame_context::FrameContext;
+use crate::modules::frame_context::FrameContext;
 
 use super::screen_server::{GameState, ScreenServer};
 
 type ScreenCallback = dyn Fn(&Context);
+
+pub trait EguiWindow {
+    fn draw(&mut self);
+}
 
 pub struct EguiRenderer {
     state: egui_winit::State,

@@ -1,20 +1,19 @@
 pub mod render;
 pub mod util;
 pub mod components;
-pub mod resources;
+pub mod modules;
 pub mod screens;
 pub mod pass_ext;
 pub mod device_ext;
 pub mod app;
+pub mod tests;
 
 use app::App;
 pub use bevy_ecs;
 pub use egui;
 pub use egui_wgpu;
 pub use egui_winit;
-use resources::input_server::InputServer;
-use resources::screen_server::GameState;
-use screens::screen::Screen;
+use modules::input_server::InputServer;
 pub use wgpu;
 use winit::dpi::PhysicalSize;
 
@@ -22,16 +21,16 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use bevy_ecs::world::World;
-use resources::asset_server::AssetServer;
-use resources::egui_renderer::EguiRenderer;
-use resources::glyphon_renderer::GlyphonRenderer;
-use resources::render_server::RenderStorage;
-use resources::screen_server::ScreenServer;
+use modules::asset_server::AssetServer;
+use modules::egui_renderer::EguiRenderer;
+use modules::glyphon_renderer::GlyphonRenderer;
+use modules::render_server::RenderStorage;
+use modules::screen_server::ScreenServer;
 use render::texture::*;
 use render::instance_data::*;
 
-use resources::default_pipeline::DefaultPipeline;
-use resources::frame_context::FrameContext;
+use modules::default_pipeline::DefaultPipeline;
+use modules::frame_context::FrameContext;
 use wgpu::Features;
 use winit::application::ApplicationHandler;
 use winit::event_loop::ActiveEventLoop;

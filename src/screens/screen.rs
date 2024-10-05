@@ -1,4 +1,4 @@
-use crate::resources::commands::Commands;
+use crate::modules::commands::Commands;
 
 #[allow(unused_variables)]
 pub trait Screen where Self: 'static {

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{resources::asset_server::{Asset, AssetServer}, InstanceData, Texture};
+use crate::{modules::asset_server::{Asset, AssetServer}, InstanceData, Texture};
 
 use super::{model_mesh::ModelMesh, vertex::Vertex};
 

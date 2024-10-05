@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use image::GenericImageView;
-use crate::{resources::asset_server::{Asset, AssetServer}, util::load_bytes};
+use crate::{modules::asset_server::{Asset, AssetServer}, util::load_bytes};
 
 #[derive(Debug)]
 pub struct Texture {

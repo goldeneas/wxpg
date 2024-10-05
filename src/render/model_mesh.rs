@@ -1,4 +1,4 @@
-use crate::{resources::render_server::MaterialId, InstanceData};
+use crate::{modules::render_server::MaterialId, InstanceData};
 
 use super::{mesh::AsMesh, vertex::{Index, Vertex}};
 
