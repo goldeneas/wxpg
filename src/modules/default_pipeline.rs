@@ -1,4 +1,3 @@
-use bevy_ecs::prelude::*;
 use cgmath::{Matrix4, SquareMatrix};
 use wgpu::{util::DeviceExt, PipelineCompilationOptions, RenderPipelineDescriptor};
 

@@ -1,6 +1,5 @@
 use std::{any::{Any, TypeId}, collections::HashMap, hash::{DefaultHasher, Hash, Hasher}, sync::Arc};
 
-use bevy_ecs::system::Resource;
 
 use crate::{render::model::Model, util::get_extension, Texture};
 

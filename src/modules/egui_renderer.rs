@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use egui::Context;
+use egui::{Context, Ui};
 use egui_wgpu::ScreenDescriptor;
 use egui_winit::winit::event::WindowEvent;
 use wgpu::CommandEncoderDescriptor;
@@ -9,6 +9,10 @@ use winit::window::Window;
 use crate::modules::frame_context::FrameContext;
 
 use super::screen_server::{GameState, ScreenServer};
+
+pub trait EguiWidget {
+    fn show(&mut self, ui: &mut Ui);
+}
 
 pub trait EguiWindow {
     fn ui(&mut self, ctx: &Context);
@@ -55,8 +59,8 @@ impl EguiRenderer {
 
     // TODO return a en EguiWindowId to let user manage visibility of window
     pub fn register_window(&mut self,
+        window: impl EguiWindow + 'static,
         required_state: GameState,
-        window: impl EguiWindow + 'static
     ) {
         let func = Box::new(window);
         self.window_map.insert(required_state, func);
@@ -77,8 +81,6 @@ impl EguiRenderer {
 
         let input = self.state.take_egui_input(window);
         let context = self.state.egui_ctx();
-
-        // TODO: add egui_plot
 
         let game_state = screen_server.state();
 

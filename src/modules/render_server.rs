@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use bevy_ecs::system::Resource;
 
 use crate::{render::{material::Material, mesh::{AsMesh, Mesh}, model::Model, multi_indexed_mesh::{AsMultiIndexedMesh, MultiIndexedMesh}}, Texture};
 
