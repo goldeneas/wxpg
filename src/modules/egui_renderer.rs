@@ -11,7 +11,7 @@ use crate::modules::frame_context::FrameContext;
 use super::screen_server::{GameState, ScreenServer};
 
 pub trait EguiWidget {
-    fn show(&mut self, ui: &mut Ui);
+    fn show(&mut self, unique_name: &str, ui: &mut Ui);
 }
 
 pub trait EguiWindow {

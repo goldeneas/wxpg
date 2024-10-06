@@ -1,8 +1,5 @@
-use std::process::exit;
+use egui::Align2;
 
-use egui::{Align2, Button};
-
-use egui_plot::{Legend, Line, PlotPoints};
 use wxpg::{app::App, modules::{commands::Commands, egui_renderer::{EguiWidget, EguiWindow}, screen_server::{GameState, ScreenServer}}, run, screens::screen::Screen, widgets::fps_visualizer::FpsGraph};
 
 #[derive(Default)]
@@ -26,7 +23,7 @@ impl EguiWindow for TestWindow {
             .collapsible(false)
             .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
-                self.fps_graph.show(ui);
+                self.fps_graph.show("fps-counter", ui);
             });
     }
 }

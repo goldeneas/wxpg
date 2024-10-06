@@ -23,8 +23,8 @@ impl FpsGraph {
 }
 
 impl EguiWidget for FpsGraph {
-    fn show(&mut self, ui: &mut egui::Ui) {
-        egui_plot::Plot::new("plot")
+    fn show(&mut self, unique_name: &str, ui: &mut egui::Ui) {
+        egui_plot::Plot::new(unique_name)
             .allow_zoom(false)
             .allow_drag(false)
             .allow_scroll(false)
