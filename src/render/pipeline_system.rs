@@ -2,8 +2,8 @@ use log::debug;
 
 use crate::Texture;
 
-pub type UniformIdx = usize;
-pub type LayoutIdx = usize;
+pub type UniformId = usize;
+pub type LayoutId = usize;
 
 pub trait AsVertexBufferLayout {
     fn desc() -> wgpu::VertexBufferLayout<'static>;
@@ -17,20 +17,26 @@ pub struct ShaderUniform {
 }
 
 #[derive(Debug)]
-pub struct PipelineSystem {
+pub struct Pipeline {
+    free_vertex_layout_id: LayoutId,
+    free_uniform_id: UniformId,
     shader: wgpu::ShaderModule,
     uniforms: Vec<ShaderUniform>,
     vertex_buffer_layouts: Vec<wgpu::VertexBufferLayout<'static>>,
     render_pipeline: Option<wgpu::RenderPipeline>,
 }
 
-impl PipelineSystem {
+impl Pipeline {
     pub fn new(shader: wgpu::ShaderModule) -> Self {
         let uniforms = Vec::default();
         let vertex_buffer_layouts = Vec::default();
         let render_pipeline = None;
+        let free_vertex_layout_id = LayoutId::default();
+        let free_uniform_id = UniformId::default();
 
         Self {
+            free_uniform_id,
+            free_vertex_layout_id,
             vertex_buffer_layouts,
             uniforms,
             shader,
@@ -38,20 +44,24 @@ impl PipelineSystem {
         }
     }
 
-    pub fn add_uniform(&mut self, uniform: ShaderUniform,) -> UniformIdx {
-        let uniform_idx = self.uniforms.len();
-        self.uniforms.push(uniform);
+    pub fn add_uniform(&mut self, uniform: ShaderUniform,) -> UniformId {
+        let uniform_id = self.free_uniform_id;
 
-        uniform_idx
+        self.uniforms.push(uniform);
+        self.free_uniform_id += 1;
+
+        uniform_id
     }
 
     pub fn add_vertex_buffer_layout(&mut self,
         layout: wgpu::VertexBufferLayout<'static>
-    ) -> LayoutIdx {
-        let layout_idx = self.vertex_buffer_layouts.len();
-        self.vertex_buffer_layouts.push(layout);
+    ) -> LayoutId {
+        let layout_id = self.free_vertex_layout_id;
 
-        layout_idx
+        self.vertex_buffer_layouts.push(layout);
+        self.free_vertex_layout_id += 1;
+
+        layout_id
     }
 
     pub fn build_pipeline(&mut self,
@@ -120,46 +130,12 @@ impl PipelineSystem {
         self.render_pipeline = Some(render_pipeline)
     }
 
-    pub fn pass<'a>(&self,
-        encoder: &'a mut wgpu::CommandEncoder,
-        view: &wgpu::TextureView,
-        depth_texture_view: &wgpu::TextureView,
-    ) -> wgpu::RenderPass<'a> {
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-label: Some("Render Pass"),
-            // this is what @location(0) in the fragment shader targets
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: 0.1,
-                        g: 0.2,
-                        b: 0.3,
-                        a: 1.0,
-                    }),
-
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: depth_texture_view,
-                depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(1.0),
-                    store: wgpu::StoreOp::Store,
-                }),
-                stencil_ops: None,
-            }),
-            occlusion_query_set: None,
-            timestamp_writes: None,
-        });
-
-        let render_pipeline = &self.render_pipeline.as_ref().unwrap();
-        render_pass.set_pipeline(render_pipeline);
-        render_pass
+    // todo too many render pipeline calls! change their names
+    pub fn render_pipeline(&self) -> &wgpu::RenderPipeline {
+        self.render_pipeline.as_ref().unwrap()
     }
 
-    pub fn buffer(&self, idx: UniformIdx) -> &wgpu::Buffer {
+    pub fn buffer(&self, idx: UniformId) -> &wgpu::Buffer {
         self.uniforms.get(idx)
             .expect("Could not find uniform with specified index")
             .buffer

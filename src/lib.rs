@@ -24,7 +24,7 @@ use bevy_ecs::world::World;
 use modules::asset_server::AssetServer;
 use modules::egui_renderer::EguiRenderer;
 use modules::glyphon_renderer::GlyphonRenderer;
-use modules::render_server::RenderStorage;
+use modules::render_storage::RenderStorage;
 use modules::screen_server::ScreenServer;
 use render::texture::*;
 use render::instance_data::*;

@@ -1,11 +1,11 @@
 use cgmath::{Matrix4, SquareMatrix};
 use wgpu::util::DeviceExt;
 
-use crate::{render::{camera::CameraUniform, pipeline_system::{AsVertexBufferLayout, PipelineSystem, ShaderUniform}, vertex::Vertex}, InstanceRaw};
+use crate::{render::{camera::CameraUniform, pipeline_system::{AsVertexBufferLayout, Pipeline, ShaderUniform}, vertex::Vertex}, InstanceRaw};
 
 #[derive(Debug)]
 pub struct DefaultPipeline {
-    pipeline_point: PipelineSystem,
+    internal_pipeline: Pipeline,
 }
 
 impl DefaultPipeline {
@@ -17,15 +17,15 @@ impl DefaultPipeline {
         let camera_uniform = Self::create_camera_uniform(device);
         let texture_uniform = Self::create_texture_uniform(device);
 
-        let mut pipeline_point = PipelineSystem::new(shader);
-        pipeline_point.add_uniform(texture_uniform);
-        pipeline_point.add_uniform(camera_uniform);
-        pipeline_point.add_vertex_buffer_layout(Vertex::desc());
-        pipeline_point.add_vertex_buffer_layout(InstanceRaw::desc());
-        pipeline_point.build_pipeline(device, config);
+        let mut internal_pipeline = Pipeline::new(shader);
+        internal_pipeline.add_uniform(texture_uniform);
+        internal_pipeline.add_uniform(camera_uniform);
+        internal_pipeline.add_vertex_buffer_layout(Vertex::desc());
+        internal_pipeline.add_vertex_buffer_layout(InstanceRaw::desc());
+        internal_pipeline.build_pipeline(device, config);
 
         Self {
-            pipeline_point,
+            internal_pipeline,
         }
     }
 
@@ -33,7 +33,7 @@ impl DefaultPipeline {
         queue: &wgpu::Queue,
         camera_uniform: &CameraUniform
     ) {
-        queue.write_buffer(self.pipeline_point.buffer(1),
+        queue.write_buffer(self.internal_pipeline.buffer(1),
             0, bytemuck::cast_slice(camera_uniform));
     }
 
@@ -110,4 +110,45 @@ impl DefaultPipeline {
             buffer: None,
         }
     }
+
+
+    pub fn pass<'a>(&self,
+        encoder: &'a mut wgpu::CommandEncoder,
+        view: &wgpu::TextureView,
+        depth_texture_view: &wgpu::TextureView,
+    ) -> wgpu::RenderPass<'a> {
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+label: Some("Render Pass"),
+            // this is what @location(0) in the fragment shader targets
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 0.1,
+                        g: 0.2,
+                        b: 0.3,
+                        a: 1.0,
+                    }),
+
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: depth_texture_view,
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(1.0),
+                    store: wgpu::StoreOp::Store,
+                }),
+                stencil_ops: None,
+            }),
+            occlusion_query_set: None,
+            timestamp_writes: None,
+        });
+
+        let render_pipeline = &self.internal_pipeline;
+        render_pass.set_pipeline(render_pipeline.render_pipeline());
+        render_pass
+    }
+
 }

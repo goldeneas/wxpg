@@ -1,6 +1,7 @@
 use egui::Align2;
 
-use wxpg::{app::App, modules::{commands::Commands, egui_renderer::{EguiWidget, EguiWindow}, screen_server::{GameState, ScreenServer}}, run, screens::screen::Screen, widgets::fps_visualizer::FpsGraph};
+use winit::keyboard::KeyCode;
+use wxpg::{app::App, modules::{commands::Commands, default_pipeline::{self, DefaultPipeline}, egui_renderer::{EguiWidget, EguiWindow}, input_server, render_storage::RenderStorage, screen_server::{GameState, ScreenServer}}, primitives::cube::Cube, render::{camera::FpsCamera, pipeline_system::Pipeline, texture::Texture}, run, screens::screen::Screen, widgets::fps_visualizer::FpsGraph};
 
 #[derive(Default)]
 pub struct TestWindow {
@@ -29,16 +30,63 @@ impl EguiWindow for TestWindow {
 }
 
 #[derive(Default)]
-pub struct TestScreen {}
+pub struct TestScreen {
+    render_storage: RenderStorage,
+    camera: Option<FpsCamera>,
+    default_pipeline: Option<DefaultPipeline>,
+}
+
 impl Screen for TestScreen {
     fn start(&mut self, commands: &mut Commands) {
-        println!("HI2");
-        let window = TestWindow::default();
-        commands.register_egui_window(window, GameState::Menu);
+        let device = &commands.engine_internal.device;
+        let config = &commands.engine_internal.config;
+        let queue = &commands.engine_internal.queue;
+        let input_server = &mut commands.engine_internal.input_server;
+        let asset_server = &mut commands.engine_internal.asset_server;
+
+        let texture = Texture::debug(asset_server, device, queue);
+        self.render_storage.push_material(texture, device);
+
+        let cube = Cube::default();
+        self.render_storage.push_mesh(&cube, device);
+
+        input_server.register_action("camera_up", KeyCode::Space);
+        input_server.register_action("camera_right", KeyCode::ShiftLeft);
+        input_server.register_action("camera_down", KeyCode::ArrowDown);
+        input_server.register_action("camera_left", KeyCode::ArrowLeft);
+        input_server.register_action("camera_front", KeyCode::ArrowUp);
+        input_server.register_action("camera_back", KeyCode::ArrowDown);
+
+        let default_pipeline = DefaultPipeline::new(device, config);
+        let camera = FpsCamera::new(config.width as f32,
+            config.height as f32,
+            1.0
+        );
+
+        self.camera = Some(camera);
+        self.default_pipeline = Some(default_pipeline);
     }
 
     fn update(&mut self, commands: &mut Commands) {
-    
+        let queue = &commands.engine_internal.queue;
+        let input_server = &commands.engine_internal.input_server;
+        let camera = self.camera.as_mut().unwrap();
+        let pipeline = self.default_pipeline.as_mut().unwrap();
+
+        camera.update(input_server);
+        pipeline.update(queue, &camera.transform().uniform());
+    }
+
+    // TODO can this process be automated?
+    fn draw(&mut self, commands: &mut Commands) {
+        let device = &commands.engine_internal.device;
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Object Encoder"),
+        });
+        let view = &commands.engine_internal.
+
+        let pass = self.default_pipeline.unwrap()
+            .pass(encoder, view, depth_texture_view)
     }
 }
 

@@ -140,4 +140,8 @@ impl FpsCamera {
             transform.position.z -= self.speed;
         }
     }
+
+    pub fn transform(&self) -> &CameraTransform {
+        &self.transform
+    }
 }

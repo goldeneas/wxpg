@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{modules::render_server::MaterialId, Texture};
+use crate::{modules::render_storage::MaterialId, Texture};
 
 #[derive(Debug)]
 pub struct Material {

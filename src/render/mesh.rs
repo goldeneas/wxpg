@@ -1,4 +1,4 @@
-use crate::{device_ext::VoxDeviceExt, modules::render_server::{MaterialId, MeshId, ModelId}, InstanceData};
+use crate::{device_ext::VoxDeviceExt, modules::render_storage::{MaterialId, MeshId, ModelId}, InstanceData};
 
 use super::vertex::{Index, Vertex};
 
