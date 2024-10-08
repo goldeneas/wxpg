@@ -218,8 +218,7 @@ impl ApplicationHandler for Engine {
     ) {
         if let DeviceEvent::MouseMotion { delta } = event {
             let engine_internal = self.engine_internal.as_mut().unwrap();
-            engine_internal.input_server
-                .mouse_delta(delta);
+            engine_internal.input_server.set_mouse_delta(delta);
         }
     }
 
@@ -252,6 +251,7 @@ impl Engine {
     fn update(&mut self) {
         let engine_internal = self.engine_internal.as_mut().unwrap();
         self.screen_server.update(engine_internal);
+        engine_internal.input_server.reset_mouse_delta();
     }
 
     fn draw(&mut self) {

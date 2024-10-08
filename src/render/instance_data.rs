@@ -1,7 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 use cgmath::{Quaternion, Vector3, Zero};
 
-use super::mesh::MeshPosition;
+use super::{mesh::MeshPosition, pipeline_system::AsVertexBufferLayout};
 
 #[derive(Debug, Clone, Copy)]
 pub struct InstanceData {
@@ -42,8 +42,8 @@ pub struct InstanceRaw {
     model: [[f32; 4]; 4],
 }
 
-impl InstanceRaw {
-    pub fn desc() -> wgpu::VertexBufferLayout<'static> {
+impl AsVertexBufferLayout for InstanceRaw {
+    fn desc() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<InstanceRaw>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Instance,

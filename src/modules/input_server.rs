@@ -29,6 +29,10 @@ pub struct InputServer {
 }
 
 impl InputServer {
+    pub fn is_pressed(&self, action_name: &str) -> bool {
+        self.get_state(action_name) == KeyState::Pressed
+    }
+
     pub fn get_state(&self, action_name: &str) -> KeyState {
         let keycode = self.action_map.get(action_name)
             .expect("Tried getting state for an unknown action");
@@ -39,7 +43,7 @@ impl InputServer {
         }
     }
 
-    pub fn mouse_delta(&mut self, delta: (f64, f64)) {
+    pub fn set_mouse_delta(&mut self, delta: (f64, f64)) {
         self.mouse_delta = delta;
     }
 
@@ -54,5 +58,13 @@ impl InputServer {
 
     pub fn unregister_action(&mut self, action_name: &str) {
         self.action_map.remove(action_name);
+    }
+
+    pub fn mouse_delta(&self) -> (f64, f64) {
+        self.mouse_delta
+    }
+
+    pub fn reset_mouse_delta(&mut self) {
+        self.mouse_delta = (0.0, 0.0);
     }
 }
