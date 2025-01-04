@@ -7,3 +7,4 @@ pub mod render_storage;
 pub mod egui_renderer;
 pub mod glyphon_renderer;
 pub mod commands;
+pub mod mesh_renderer;

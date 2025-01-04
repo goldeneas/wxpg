@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 
-use super::pipeline_system::AsVertexBufferLayout;
+use super::pipeline::AsVertexBufferLayout;
 
 pub type Index = u32;
 

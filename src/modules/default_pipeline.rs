@@ -1,18 +1,21 @@
 use cgmath::{Matrix4, SquareMatrix};
 use wgpu::util::DeviceExt;
 
-use crate::{render::{camera::CameraUniform, pipeline_system::{AsVertexBufferLayout, Pipeline, ShaderUniform}, vertex::Vertex}, InstanceRaw};
+use crate::{render::{camera::CameraUniform, pipeline::{AsVertexBufferLayout, IntoPipeline, Pipeline, ShaderUniform}, vertex::Vertex}, InstanceRaw};
 
-#[derive(Debug)]
-pub struct DefaultPipeline {
-    internal_pipeline: Pipeline,
-}
+#[derive(Debug, Default)]
+pub struct DefaultPipeline {}
 
-impl DefaultPipeline {
-    pub fn new(device: &wgpu::Device,
+// TODO maybe this is not needed
+// we should remove pipelines from render storage
+impl IntoPipeline for DefaultPipeline {
+    fn into_pipeline(self,
+        device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
-    ) -> Self {
-        let shader = device.create_shader_module(wgpu::include_wgsl!("../shader.wgsl"));
+    ) -> Pipeline {
+        let shader = device.create_shader_module(
+            wgpu::include_wgsl!("../shader.wgsl")
+        );
 
         let camera_uniform = Self::create_camera_uniform(device);
         let texture_uniform = Self::create_texture_uniform(device);
@@ -24,16 +27,17 @@ impl DefaultPipeline {
         internal_pipeline.add_vertex_buffer_layout(InstanceRaw::desc());
         internal_pipeline.build_pipeline(device, config);
 
-        Self {
-            internal_pipeline,
-        }
+        internal_pipeline
     }
+}
 
+impl DefaultPipeline {
     pub fn update(&mut self,
+        pipeline: &Pipeline,
         queue: &wgpu::Queue,
         camera_uniform: &CameraUniform
     ) {
-        queue.write_buffer(self.internal_pipeline.buffer(1),
+        queue.write_buffer(pipeline.buffer(1),
             0, bytemuck::cast_slice(camera_uniform));
     }
 
@@ -111,8 +115,8 @@ impl DefaultPipeline {
         }
     }
 
-
     pub fn pass<'a>(&self,
+        pipeline: &Pipeline,
         encoder: &'a mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         depth_texture_view: &wgpu::TextureView,
@@ -146,8 +150,7 @@ label: Some("Render Pass"),
             timestamp_writes: None,
         });
 
-        let render_pipeline = &self.internal_pipeline;
-        render_pass.set_pipeline(render_pipeline.render_pipeline());
+        render_pass.set_pipeline(pipeline.render_pipeline());
         render_pass
     }
 

@@ -9,6 +9,13 @@ pub trait AsVertexBufferLayout {
     fn desc() -> wgpu::VertexBufferLayout<'static>;
 }
 
+pub trait IntoPipeline {
+    fn into_pipeline(self,
+        device: &wgpu::Device,
+        config: &wgpu::SurfaceConfiguration,
+    ) -> Pipeline;
+}
+
 #[derive(Debug)]
 pub struct ShaderUniform {
     pub bind_group_layout: wgpu::BindGroupLayout,

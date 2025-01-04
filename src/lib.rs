@@ -7,12 +7,14 @@ pub mod pass_ext;
 pub mod device_ext;
 pub mod app;
 pub mod widgets;
+pub mod primitives;
 
 use app::App;
 pub use bevy_ecs;
 pub use egui;
 pub use egui_wgpu;
 pub use egui_winit;
+use modules::default_pipeline::DefaultPipeline;
 use modules::input_server::InputServer;
 pub use wgpu;
 use winit::dpi::PhysicalSize;
@@ -29,7 +31,6 @@ use modules::screen_server::ScreenServer;
 use render::texture::*;
 use render::instance_data::*;
 
-use modules::default_pipeline::DefaultPipeline;
 use modules::frame_context::FrameContext;
 use wgpu::Features;
 use winit::application::ApplicationHandler;
@@ -112,8 +113,9 @@ impl EngineInternal {
 
         let glyphon_renderer = GlyphonRenderer::new(&device, &queue);
         let egui_renderer = EguiRenderer::new(&device, &window);
-        let default_pipeline = DefaultPipeline::new(&device, &config);
+        let default_pipeline = DefaultPipeline::default();
         let render_storage = RenderStorage::default();
+        render_storage.pipelines();
 
         let world = World::default();
 

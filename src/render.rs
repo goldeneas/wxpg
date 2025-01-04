@@ -7,4 +7,4 @@ pub mod vertex;
 pub mod model_mesh;
 pub mod multi_indexed_mesh;
 pub mod camera;
-pub mod pipeline_system;
+pub mod pipeline;

@@ -1,7 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 use cgmath::{Quaternion, Vector3, Zero};
 
-use super::{mesh::MeshPosition, pipeline_system::AsVertexBufferLayout};
+use super::{mesh::MeshPosition, pipeline::AsVertexBufferLayout};
 
 #[derive(Debug, Clone, Copy)]
 pub struct InstanceData {
