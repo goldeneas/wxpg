@@ -1,7 +1,7 @@
 use egui::Align2;
 
 use winit::keyboard::KeyCode;
-use wxpg::{app::App, modules::{commands::Commands, default_pipeline::DefaultPipeline, egui_renderer::{EguiWidget, EguiWindow}, render_storage::RenderStorage, screen_server::{GameState, ScreenServer}}, primitives::cube::Cube, render::{camera::FpsCamera, pipeline::IntoPipeline, texture::Texture}, run, screens::screen::Screen, widgets::fps_visualizer::FpsGraph};
+use wxpg::{app::App, modules::{commands::Commands, default_pipeline::DefaultPipeline, egui_renderer::{EguiWidget, EguiWindow}, render_storage::RenderStorage, screen_server::{GameState, ScreenServer}}, primitives::cube::Cube, render::{camera::FpsCamera, texture::Texture}, run, screens::screen::Screen, widgets::fps_visualizer::FpsGraph};
 
 #[derive(Default)]
 pub struct TestWindow {
@@ -33,6 +33,7 @@ impl EguiWindow for TestWindow {
 pub struct TestScreen {
     render_storage: RenderStorage,
     camera: Option<FpsCamera>,
+    pipeline: Option<DefaultPipeline>,
 }
 
 impl Screen for TestScreen {
@@ -56,10 +57,8 @@ impl Screen for TestScreen {
         input_server.register_action("camera_front", KeyCode::ArrowUp);
         input_server.register_action("camera_back", KeyCode::ArrowDown);
 
-        let default_pipeline = DefaultPipeline::default();
-        self.render_storage.push_pipeline(
-            default_pipeline.into_pipeline(&device, &config)
-        );
+        let pipeline = DefaultPipeline::new(&device, &config);
+        self.pipeline = Some(pipeline);
 
         let camera = FpsCamera::new(config.width as f32,
             config.height as f32,
@@ -73,16 +72,10 @@ impl Screen for TestScreen {
         let queue = &commands.engine_internal.queue;
         let input_server = &commands.engine_internal.input_server;
         let camera = self.camera.as_mut().unwrap();
-        let render_storage = &commands.engine_internal.render_storage;
-        let pipeline = render_storage.pipelines()
-            .get(0)
-            .unwrap();
+        let pipeline = self.pipeline.as_mut().unwrap();
 
         camera.update(input_server);
         pipeline.update(queue, &camera.transform().uniform());
-
-        queue.write_buffer(pipeline.buffer(1),
-            0, bytemuck::cast_slice(&camera.transform().uniform()));
     }
 
     // TODO can this process be automated?
@@ -91,6 +84,9 @@ impl Screen for TestScreen {
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Object Encoder"),
         });
+
+        let mut pass = self.pipeline.unwrap()
+            .pass(encoder, view, depth_texture_view)
     }
 }
 

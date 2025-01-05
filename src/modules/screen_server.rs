@@ -6,6 +6,7 @@ use crate::{screens::screen::Screen, EngineInternal};
 
 use super::commands::Commands;
 
+// TODO: Make game state a string instead
 #[derive(Clone, Copy, Default, Eq, PartialEq, Hash, Debug)]
 pub enum GameState {
     #[default]

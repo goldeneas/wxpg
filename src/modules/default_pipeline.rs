@@ -1,18 +1,23 @@
 use cgmath::{Matrix4, SquareMatrix};
 use wgpu::util::DeviceExt;
 
-use crate::{render::{camera::CameraUniform, pipeline::{AsVertexBufferLayout, IntoPipeline, Pipeline, ShaderUniform}, vertex::Vertex}, InstanceRaw};
+use crate::{render::{camera::CameraUniform, pipeline::{AsPipeline, AsVertexBufferLayout, Pipeline, ShaderUniform}, vertex::Vertex}, InstanceRaw};
 
-#[derive(Debug, Default)]
-pub struct DefaultPipeline {}
+#[derive(Debug)]
+pub struct DefaultPipeline {
+    pipeline: Pipeline
+}
 
-// TODO maybe this is not needed
-// we should remove pipelines from render storage
-impl IntoPipeline for DefaultPipeline {
-    fn into_pipeline(self,
-        device: &wgpu::Device,
+impl AsPipeline for DefaultPipeline {
+    fn as_pipeline(&self) -> &Pipeline {
+        &self.pipeline
+    }
+}
+
+impl DefaultPipeline {
+    pub fn new(device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
-    ) -> Pipeline {
+    ) -> Self {
         let shader = device.create_shader_module(
             wgpu::include_wgsl!("../shader.wgsl")
         );
@@ -20,24 +25,24 @@ impl IntoPipeline for DefaultPipeline {
         let camera_uniform = Self::create_camera_uniform(device);
         let texture_uniform = Self::create_texture_uniform(device);
 
-        let mut internal_pipeline = Pipeline::new(shader);
-        internal_pipeline.add_uniform(texture_uniform);
-        internal_pipeline.add_uniform(camera_uniform);
-        internal_pipeline.add_vertex_buffer_layout(Vertex::desc());
-        internal_pipeline.add_vertex_buffer_layout(InstanceRaw::desc());
-        internal_pipeline.build_pipeline(device, config);
+        let mut pipeline = Pipeline::new(shader, "DefaultPipeline");
+        pipeline.add_uniform(texture_uniform);
+        pipeline.add_uniform(camera_uniform);
+        pipeline.add_vertex_buffer_layout(Vertex::desc());
+        pipeline.add_vertex_buffer_layout(InstanceRaw::desc());
+        pipeline.build(device, config);
 
-        internal_pipeline
+        Self {
+            pipeline,
+        }
     }
-}
 
-impl DefaultPipeline {
     pub fn update(&mut self,
-        pipeline: &Pipeline,
         queue: &wgpu::Queue,
         camera_uniform: &CameraUniform
     ) {
-        queue.write_buffer(pipeline.buffer(1),
+        // FIXME: hardcoded id
+        queue.write_buffer(self.pipeline.buffer(1),
             0, bytemuck::cast_slice(camera_uniform));
     }
 
@@ -116,7 +121,6 @@ impl DefaultPipeline {
     }
 
     pub fn pass<'a>(&self,
-        pipeline: &Pipeline,
         encoder: &'a mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         depth_texture_view: &wgpu::TextureView,
@@ -150,7 +154,7 @@ label: Some("Render Pass"),
             timestamp_writes: None,
         });
 
-        render_pass.set_pipeline(pipeline.render_pipeline());
+        render_pass.set_pipeline(self.pipeline.render_pipeline());
         render_pass
     }
 

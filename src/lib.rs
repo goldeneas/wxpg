@@ -14,7 +14,6 @@ pub use bevy_ecs;
 pub use egui;
 pub use egui_wgpu;
 pub use egui_winit;
-use modules::default_pipeline::DefaultPipeline;
 use modules::input_server::InputServer;
 pub use wgpu;
 use winit::dpi::PhysicalSize;
@@ -59,7 +58,6 @@ pub struct EngineInternal {
     pub queue: wgpu::Queue,
     pub window_size: PhysicalSize<u32>,
     pub render_storage: RenderStorage,
-    pub default_pipeline: DefaultPipeline,
 }
 
 impl EngineInternal {
@@ -113,9 +111,7 @@ impl EngineInternal {
 
         let glyphon_renderer = GlyphonRenderer::new(&device, &queue);
         let egui_renderer = EguiRenderer::new(&device, &window);
-        let default_pipeline = DefaultPipeline::default();
         let render_storage = RenderStorage::default();
-        render_storage.pipelines();
 
         let world = World::default();
 
@@ -133,7 +129,6 @@ impl EngineInternal {
             depth_texture,
             render_storage,
             glyphon_renderer,
-            default_pipeline,
             asset_server,
             input_server,
             world,

@@ -8,13 +8,13 @@ pub type MeshId = usize;
 pub type MultiIndexedMeshId = usize;
 pub type PipelineId = usize;
 
+// TODO Maybe use something like asset server for pipeline storage
+
 #[derive(Default)]
 pub struct RenderStorage {
-    pipelines: Vec<Pipeline>,
     meshes: Vec<Mesh>,
     multi_indexed_meshes: Vec<MultiIndexedMesh>,
     materials: Vec<Material>,
-    free_pipeline_id: PipelineId,
     free_mesh_id: MeshId,
     free_multi_indexed_mesh_id: MultiIndexedMeshId,
     free_material_id: MaterialId,
@@ -22,15 +22,6 @@ pub struct RenderStorage {
 }
 
 impl RenderStorage {
-    pub fn push_pipeline(&mut self, pipeline: Pipeline) -> PipelineId {
-        let pipeline_id = self.free_pipeline_id;
-
-        self.pipelines.push(pipeline);
-        self.free_pipeline_id += 1;
-
-        pipeline_id
-    }
-
     pub fn push_material(&mut self,
         diffuse_texture: Arc<Texture>,
         device: &wgpu::Device,
@@ -173,10 +164,6 @@ impl RenderStorage {
 
     pub fn multi_indexed_meshes(&self) -> &Vec<MultiIndexedMesh> {
         &self.multi_indexed_meshes
-    }
-
-    pub fn pipelines(&self) -> &Vec<Pipeline> {
-        &self.pipelines
     }
 
     pub fn meshes(&self) -> &Vec<Mesh> {

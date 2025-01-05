@@ -5,15 +5,12 @@ use crate::Texture;
 pub type UniformId = usize;
 pub type LayoutId = usize;
 
-pub trait AsVertexBufferLayout {
-    fn desc() -> wgpu::VertexBufferLayout<'static>;
+pub trait AsPipeline {
+    fn as_pipeline(&self) -> &Pipeline;
 }
 
-pub trait IntoPipeline {
-    fn into_pipeline(self,
-        device: &wgpu::Device,
-        config: &wgpu::SurfaceConfiguration,
-    ) -> Pipeline;
+pub trait AsVertexBufferLayout {
+    fn desc() -> wgpu::VertexBufferLayout<'static>;
 }
 
 #[derive(Debug)]
@@ -31,15 +28,19 @@ pub struct Pipeline {
     uniforms: Vec<ShaderUniform>,
     vertex_buffer_layouts: Vec<wgpu::VertexBufferLayout<'static>>,
     render_pipeline: Option<wgpu::RenderPipeline>,
+    name: String,
+    is_dirty: bool,
 }
 
 impl Pipeline {
-    pub fn new(shader: wgpu::ShaderModule) -> Self {
+    pub fn new(shader: wgpu::ShaderModule, name: &str) -> Self {
         let uniforms = Vec::default();
         let vertex_buffer_layouts = Vec::default();
         let render_pipeline = None;
         let free_vertex_layout_id = LayoutId::default();
         let free_uniform_id = UniformId::default();
+        let name = name.to_string();
+        let is_dirty = false;
 
         Self {
             free_uniform_id,
@@ -48,6 +49,8 @@ impl Pipeline {
             uniforms,
             shader,
             render_pipeline,
+            name,
+            is_dirty,
         }
     }
 
@@ -56,6 +59,7 @@ impl Pipeline {
 
         self.uniforms.push(uniform);
         self.free_uniform_id += 1;
+        self.is_dirty = true;
 
         uniform_id
     }
@@ -67,16 +71,19 @@ impl Pipeline {
 
         self.vertex_buffer_layouts.push(layout);
         self.free_vertex_layout_id += 1;
+        self.is_dirty = true;
 
         layout_id
     }
 
-    pub fn build_pipeline(&mut self,
+    pub fn build(&mut self,
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration
     ) {
-        if self.render_pipeline.is_some() {
-            debug!("Rebuilding pipeline point...");
+        if !self.is_dirty {
+            debug!("Built pipeline, but it was not dirty! Pipeline {}",
+                self.name
+            );
         }
 
         let bind_group_layouts = self.uniforms
@@ -134,11 +141,16 @@ impl Pipeline {
             cache: None,
         });
 
-        self.render_pipeline = Some(render_pipeline)
+        self.render_pipeline = Some(render_pipeline);
+        self.is_dirty = false;
     }
 
-    // todo too many render pipeline calls! change their names
     pub fn render_pipeline(&self) -> &wgpu::RenderPipeline {
+        assert!(!self.is_dirty,
+            "Tried getting reference to dirty pipeline! Pipeline {}",
+            self.name
+        );
+
         self.render_pipeline.as_ref().unwrap()
     }
 
@@ -148,5 +160,9 @@ impl Pipeline {
             .buffer
             .as_ref()
             .expect("Found a shader uniform, but it doesnt have a buffer set!")
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 }
