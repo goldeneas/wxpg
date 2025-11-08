@@ -39,22 +39,3 @@ The project is configured as a library with a runnable example in `src/main.rs`.
     ```sh
     cargo run
     ```
-
-## Project Structure
-```bash
-src/  
-├── app.rs           # Main `App` trait, implemented by the game.  
-├── components/      # ECS components (e.g., CameraComponent, SpeedComponent).  
-├── modules/         # Core engine abstractions:  
-│   ├── asset_server.rs  
-│   ├── egui_renderer.rs  
-│   ├── glyphon_renderer.rs  
-│   ├── input_server.rs  
-│   ├── render_storage.rs  
-│   └── screen_server.rs  
-├── render/          # Low-level wgpu rendering structs (Mesh, Model, Pipeline, etc.).  
-├── screens/         # Screen trait and state-specific logic.  
-├── widgets/         # Reusable Egui widgets (e.g., FpsGraph).  
-├── lib.rs           # Engine setup (`EngineInternal`) and main event loop.  
-└── main.rs          # Runnable example (`AppTest`, `TestScreen`).
-```
