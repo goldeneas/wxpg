@@ -1,7 +1,7 @@
 # wxpg
 `wxpg` is an experimental, custom-tailored 2D/3D game engine built in Rust. It serves as a foundational layer, providing abstractions over low-level graphics, UI, and entity-component-system (ECS) libraries.
 
-This project appears to be a continuation of [vox](https://github.com/goldeneas/vox), shifting from a pure-voxel focus to a more general-purpose rendering engine architecture.
+This project is a continuation of [vox](https://github.com/goldeneas/vox), shifting from a pure-voxel focus to a more general-purpose rendering engine architecture.
 
 ## ⚠️ Project Status: Experimental
 
