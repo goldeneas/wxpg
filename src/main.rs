@@ -21,6 +21,8 @@ impl State {
     pub async fn new(window: Arc<Window>, handle: Box<OwnedDisplayHandle>) -> anyhow::Result<Self> {
         let size = window.inner_size();
 
+        // an instance is the first thing we create with wgpu.
+        // its purpose is to create Surfaces and Adapters
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::PRIMARY,
             flags: Default::default(),
@@ -29,8 +31,12 @@ impl State {
             display: Some(handle),
         });
 
+        // a Surface is the part of the window that we draw to.
+        // we need it to draw to our screen
         let surface = instance.create_surface(window.clone()).unwrap();
 
+        // an Adapter is an handle for our graphics card.
+        // it lets us create a Device and a Queue
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
@@ -136,7 +142,7 @@ impl State {
 
         // now we can clear the screen.
         // we use the encoder to create a RenderPass.
-        // a Renderpass has all the methods to actually draw to the frame.
+        // a Renderpass has all the methods to actually draw to the frame
         let render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Render Pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
